@@ -117,6 +117,20 @@ export default function LoginPage() {
             </div>
           </div>
         )}
+
+        {/* Link to Register */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-muted-foreground mb-2">
+            Ainda não tem conta?
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/cadastro')}
+            className="w-full"
+          >
+            Cadastre-se
+          </Button>
+        </div>
       </main>
 
       {/* Footer */}
