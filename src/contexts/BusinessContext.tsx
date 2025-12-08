@@ -30,7 +30,8 @@ const PACOTES_KEY = 'instrutor_plus_pacotes';
 const TAXA_PLATAFORMA = 10; // 10% padrão
 
 export function BusinessProvider({ children }: { children: ReactNode }) {
-  const { currentUser, instrutores, updateInstrutor } = useAuth();
+  const auth = useAuth();
+  const { currentUser, instrutores, updateInstrutor } = auth || { currentUser: null, instrutores: [], updateInstrutor: () => {} };
   const [pacotes, setPacotes] = useState<PacoteAulas[]>([]);
 
   // Load initial data
