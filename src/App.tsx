@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
 // Pages
 import LoginPage from "./pages/LoginPage";
+import CadastroPage from "./pages/CadastroPage";
 import HomePage from "./pages/aluno/HomePage";
 import InstrutorProfilePage from "./pages/aluno/InstrutorProfilePage";
 import AvaliacoesPage from "./pages/aluno/AvaliacoesPage";
@@ -45,6 +46,22 @@ function AppRoutes() {
           currentUser 
             ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
             : <LoginPage />
+        } 
+      />
+      <Route 
+        path="/login" 
+        element={
+          currentUser 
+            ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
+            : <LoginPage />
+        } 
+      />
+      <Route 
+        path="/cadastro" 
+        element={
+          currentUser 
+            ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
+            : <CadastroPage />
         } 
       />
 

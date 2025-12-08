@@ -2,6 +2,25 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { CurrentUser, Instrutor, Aluno, UserType } from '@/types';
 import usersData from '@/data/users.json';
 
+interface RegisterAlunoData {
+  nome: string;
+  foto: string;
+  cidade: string;
+}
+
+interface RegisterInstrutorData {
+  nome: string;
+  foto: string;
+  cidade: string;
+  credenciamentoDetran: string;
+  categoria: string;
+  anosExperiencia: number;
+  precoHora: number;
+  bairrosAtendimento: string[];
+  temVeiculo: boolean;
+  bio: string;
+}
+
 interface AuthContextType {
   currentUser: CurrentUser | null;
   login: (userId: string, tipo: UserType) => void;
@@ -11,6 +30,8 @@ interface AuthContextType {
   updateInstrutor: (instrutor: Instrutor) => void;
   toggleFavorito: (instrutorId: string) => void;
   isFavorito: (instrutorId: string) => boolean;
+  registerAluno: (data: RegisterAlunoData) => void;
+  registerInstrutor: (data: RegisterInstrutorData) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +39,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const STORAGE_KEY = 'instrutor_plus_user';
 const FAVORITES_KEY = 'instrutor_plus_favorites';
 const INSTRUTORES_KEY = 'instrutor_plus_instrutores';
+const ALUNOS_KEY = 'instrutor_plus_alunos';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -35,7 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setInstrutores(usersData.instrutores as Instrutor[]);
     }
 
-    setAlunos(usersData.alunos as Aluno[]);
+    // Load alunos from localStorage or JSON
+    const storedAlunos = localStorage.getItem(ALUNOS_KEY);
+    if (storedAlunos) {
+      setAlunos(JSON.parse(storedAlunos));
+    } else {
+      setAlunos(usersData.alunos as Aluno[]);
+    }
 
     // Load stored user
     const storedUser = localStorage.getItem(STORAGE_KEY);
@@ -107,6 +135,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return favorites.includes(instrutorId);
   };
 
+  const registerAluno = (data: RegisterAlunoData) => {
+    const newAluno: Aluno = {
+      id: `aluno-${Date.now()}`,
+      nome: data.nome,
+      foto: data.foto,
+      cidade: data.cidade,
+      favoritos: [],
+    };
+
+    const updatedAlunos = [...alunos, newAluno];
+    setAlunos(updatedAlunos);
+    localStorage.setItem(ALUNOS_KEY, JSON.stringify(updatedAlunos));
+
+    // Auto login
+    const user: CurrentUser = {
+      id: newAluno.id,
+      tipo: 'aluno',
+      data: newAluno,
+    };
+    setCurrentUser(user);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  };
+
+  const registerInstrutor = (data: RegisterInstrutorData) => {
+    const newInstrutor: Instrutor = {
+      id: `inst-${Date.now()}`,
+      nome: data.nome,
+      foto: data.foto,
+      cidade: data.cidade,
+      credenciamentoDetran: data.credenciamentoDetran,
+      categoria: data.categoria,
+      anosExperiencia: data.anosExperiencia,
+      precoHora: data.precoHora,
+      bairrosAtendimento: data.bairrosAtendimento,
+      temVeiculo: data.temVeiculo,
+      bio: data.bio,
+      avaliacaoMedia: 5.0,
+      avaliacoes: [],
+    };
+
+    const updatedInstrutores = [...instrutores, newInstrutor];
+    setInstrutores(updatedInstrutores);
+    localStorage.setItem(INSTRUTORES_KEY, JSON.stringify(updatedInstrutores));
+
+    // Auto login
+    const user: CurrentUser = {
+      id: newInstrutor.id,
+      tipo: 'instrutor',
+      data: newInstrutor,
+    };
+    setCurrentUser(user);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  };
+
   return (
     <AuthContext.Provider value={{
       currentUser,
@@ -116,7 +198,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       alunos,
       updateInstrutor,
       toggleFavorito,
-      isFavorito
+      isFavorito,
+      registerAluno,
+      registerInstrutor,
     }}>
       {children}
     </AuthContext.Provider>
