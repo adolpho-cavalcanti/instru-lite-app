@@ -17,6 +17,7 @@ import AlunoPerfilPage from "./pages/aluno/AlunoPerfilPage";
 import ComprarPacotePage from "./pages/aluno/ComprarPacotePage";
 import MinhasAulasPage from "./pages/aluno/MinhasAulasPage";
 import AvaliarInstrutorPage from "./pages/aluno/AvaliarInstrutorPage";
+import PacoteDetalhesPage from "./pages/PacoteDetalhesPage";
 import InstrutorHomePage from "./pages/instrutor/InstrutorHomePage";
 import InstrutorAvaliacoesPage from "./pages/instrutor/InstrutorAvaliacoesPage";
 import InstrutorPerfilPage from "./pages/instrutor/InstrutorPerfilPage";
@@ -92,6 +93,9 @@ function AppRoutes() {
       } />
       <Route path="/avaliar/:pacoteId" element={
         <ProtectedRoute allowedType="aluno"><AvaliarInstrutorPage /></ProtectedRoute>
+      } />
+      <Route path="/pacote/:id" element={
+        <ProtectedRoute><PacoteDetalhesPage /></ProtectedRoute>
       } />
       <Route path="/perfil" element={
         <ProtectedRoute allowedType="aluno"><AlunoPerfilPage /></ProtectedRoute>
