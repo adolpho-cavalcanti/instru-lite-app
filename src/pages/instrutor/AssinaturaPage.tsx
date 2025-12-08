@@ -1,229 +1,148 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { PLANOS_ASSINATURA, Instrutor } from '@/types';
+import { TAXA_PLATAFORMA } from '@/types';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { Check, Crown, Zap, Shield, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Check, TrendingUp, Users, Star, Percent } from 'lucide-react';
 
 export default function AssinaturaPage() {
-  const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  const { assinarPlano, cancelarAssinatura, verificarAssinaturaAtiva } = useBusiness();
-  const [loading, setLoading] = useState<string | null>(null);
+  const { currentUser, instrutores } = useAuth();
+  const { getPacotesInstrutor } = useBusiness();
 
-  const instrutor = currentUser?.data as Instrutor;
-  const assinaturaAtiva = instrutor ? verificarAssinaturaAtiva(instrutor.id) : false;
+  const instrutor = instrutores.find(i => i.id === currentUser?.id);
+  const pacotes = getPacotesInstrutor();
 
-  const handleAssinar = async (planoId: 'basico' | 'profissional' | 'premium') => {
-    setLoading(planoId);
-    
-    // Simular processamento de pagamento
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    assinarPlano(planoId);
-    
-    toast.success('Assinatura realizada com sucesso!', {
-      description: 'Seu perfil agora está ativo na plataforma.',
-    });
-    
-    setLoading(null);
-  };
-
-  const handleCancelar = async () => {
-    setLoading('cancelar');
-    
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    cancelarAssinatura();
-    
-    toast.info('Assinatura cancelada', {
-      description: 'Seu perfil não será mais exibido na busca.',
-    });
-    
-    setLoading(null);
-  };
-
-  const getPlanoIcon = (planoId: string) => {
-    switch (planoId) {
-      case 'basico': return <Shield className="w-6 h-6" />;
-      case 'profissional': return <Zap className="w-6 h-6" />;
-      case 'premium': return <Crown className="w-6 h-6" />;
-      default: return null;
-    }
-  };
+  // Estatísticas
+  const pacotesConcluidos = pacotes.filter(p => p.status === 'concluido');
+  const totalGanho = pacotesConcluidos.reduce((acc, p) => acc + (p.precoTotal - p.valorPlataforma), 0);
+  const totalComissao = pacotesConcluidos.reduce((acc, p) => acc + p.valorPlataforma, 0);
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <Header title="Assinatura" showBack />
+      <Header title="Como Funciona" showBack />
 
       <main className="p-4 space-y-6">
-        {/* Status atual */}
-        {assinaturaAtiva && instrutor.assinaturaPlano && (
-          <Card className="p-4 bg-primary/5 border-primary/20">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-primary/10 rounded-full text-primary">
-                {getPlanoIcon(instrutor.assinaturaPlano)}
+        {/* Badge Cadastro Grátis */}
+        <div className="text-center">
+          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-sm px-4 py-1">
+            Cadastro 100% Gratuito
+          </Badge>
+        </div>
+
+        {/* Como funciona */}
+        <Card className="p-5">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Percent className="w-5 h-5 text-primary" />
+            Modelo de Comissão
+          </h2>
+          
+          <p className="text-muted-foreground mb-4">
+            Na Instrutor+, você não paga nada para se cadastrar ou manter seu perfil ativo. 
+            Cobramos apenas uma pequena comissão quando você fecha um pacote de aulas.
+          </p>
+
+          <div className="bg-primary/5 rounded-xl p-4 text-center mb-4">
+            <p className="text-4xl font-bold text-primary">{TAXA_PLATAFORMA}%</p>
+            <p className="text-sm text-muted-foreground mt-1">de comissão por pacote fechado</p>
+          </div>
+
+          <ul className="space-y-3">
+            <li className="flex items-start gap-3">
+              <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <span className="text-sm text-foreground">
+                Cadastro e perfil na plataforma <strong>grátis</strong>
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <span className="text-sm text-foreground">
+                Apareça na busca de alunos <strong>sem custo</strong>
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <span className="text-sm text-foreground">
+                Receba avaliações e construa sua reputação
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <span className="text-sm text-foreground">
+                Pague apenas quando fechar negócio
+              </span>
+            </li>
+          </ul>
+        </Card>
+
+        {/* Exemplo prático */}
+        <Card className="p-5">
+          <h3 className="font-semibold text-foreground mb-3">Exemplo prático</h3>
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Pacote de 10 horas × R$100/hora</span>
+              <span className="text-foreground font-medium">R$ 1.000,00</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Comissão da plataforma ({TAXA_PLATAFORMA}%)</span>
+              <span className="text-destructive">- R$ 100,00</span>
+            </div>
+            <div className="border-t border-border pt-2 flex justify-between">
+              <span className="font-semibold text-foreground">Você recebe</span>
+              <span className="font-bold text-green-600">R$ 900,00</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Estatísticas do instrutor */}
+        {instrutor && (
+          <Card className="p-5">
+            <h3 className="font-semibold text-foreground mb-4">Suas estatísticas</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <Users className="w-5 h-5 mx-auto text-primary mb-1" />
+                <p className="text-2xl font-bold text-foreground">{pacotesConcluidos.length}</p>
+                <p className="text-xs text-muted-foreground">Pacotes concluídos</p>
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-foreground">
-                    Plano {PLANOS_ASSINATURA.find(p => p.id === instrutor.assinaturaPlano)?.nome}
-                  </h3>
-                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                    Ativo
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Renova em {instrutor.assinaturaExpira 
-                    ? format(new Date(instrutor.assinaturaExpira), "dd 'de' MMMM", { locale: ptBR })
-                    : '-'}
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <Star className="w-5 h-5 mx-auto text-yellow-500 mb-1" />
+                <p className="text-2xl font-bold text-foreground">{instrutor.avaliacaoMedia.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">Avaliação média</p>
+              </div>
+              <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <TrendingUp className="w-5 h-5 mx-auto text-green-600 mb-1" />
+                <p className="text-2xl font-bold text-green-600">
+                  R$ {totalGanho.toFixed(2).replace('.', ',')}
                 </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2 text-destructive hover:text-destructive"
-                  onClick={handleCancelar}
-                  disabled={loading === 'cancelar'}
-                >
-                  {loading === 'cancelar' ? 'Cancelando...' : 'Cancelar assinatura'}
-                </Button>
+                <p className="text-xs text-muted-foreground">Total recebido</p>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <Percent className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
+                <p className="text-2xl font-bold text-foreground">
+                  R$ {totalComissao.toFixed(2).replace('.', ',')}
+                </p>
+                <p className="text-xs text-muted-foreground">Comissão paga</p>
               </div>
             </div>
           </Card>
         )}
-
-        {/* Aviso se não tem assinatura */}
-        {!assinaturaAtiva && (
-          <div className="bg-yellow-50 dark:bg-yellow-950/30 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
-                  Seu perfil não está ativo
-                </p>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                  Assine um plano para aparecer na busca, receber avaliações e 
-                  conquistar novos alunos.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Planos */}
-        <div>
-          <h2 className="text-lg font-semibold text-foreground mb-4">
-            {assinaturaAtiva ? 'Alterar plano' : 'Escolha seu plano'}
-          </h2>
-          <div className="space-y-4">
-            {PLANOS_ASSINATURA.map((plano) => {
-              const isCurrentPlan = instrutor?.assinaturaPlano === plano.id && assinaturaAtiva;
-
-              return (
-                <Card
-                  key={plano.id}
-                  className={`p-4 relative overflow-hidden ${
-                    plano.destaque 
-                      ? 'ring-2 ring-primary' 
-                      : ''
-                  } ${isCurrentPlan ? 'bg-primary/5' : ''}`}
-                >
-                  {plano.destaque && (
-                    <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs px-3 py-1 rounded-bl-lg font-medium">
-                      Recomendado
-                    </div>
-                  )}
-
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className={`p-2 rounded-full ${
-                      plano.id === 'premium' 
-                        ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'
-                        : plano.id === 'profissional'
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-accent text-accent-foreground'
-                    }`}>
-                      {getPlanoIcon(plano.id)}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground">
-                        {plano.nome}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {plano.descricao}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-foreground">
-                        R${plano.preco.toFixed(2).replace('.', ',')}
-                      </p>
-                      <p className="text-xs text-muted-foreground">/mês</p>
-                    </div>
-                  </div>
-
-                  <ul className="space-y-2 mb-4">
-                    {plano.beneficios.map((beneficio, index) => (
-                      <li key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        {beneficio}
-                      </li>
-                    ))}
-                    {plano.taxaAula > 0 && (
-                      <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="w-4 h-4 flex items-center justify-center text-xs">💸</span>
-                        {plano.taxaAula}% de taxa por aula
-                      </li>
-                    )}
-                    {plano.taxaAula === 0 && (
-                      <li className="flex items-center gap-2 text-sm text-green-600 font-medium">
-                        <Check className="w-4 h-4 flex-shrink-0" />
-                        Sem taxa por aula!
-                      </li>
-                    )}
-                  </ul>
-
-                  {isCurrentPlan ? (
-                    <Button className="w-full" variant="secondary" disabled>
-                      Plano atual
-                    </Button>
-                  ) : (
-                    <Button
-                      className="w-full"
-                      variant={plano.destaque ? 'default' : 'outline'}
-                      onClick={() => handleAssinar(plano.id)}
-                      disabled={loading === plano.id}
-                    >
-                      {loading === plano.id ? 'Processando...' : 'Assinar'}
-                    </Button>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-        </div>
 
         {/* FAQ */}
         <Card className="p-4">
           <h3 className="font-semibold text-foreground mb-3">Perguntas frequentes</h3>
           <div className="space-y-3 text-sm">
             <div>
-              <p className="font-medium text-foreground">Posso cancelar a qualquer momento?</p>
-              <p className="text-muted-foreground">Sim! Você pode cancelar quando quiser, sem multa.</p>
+              <p className="font-medium text-foreground">Preciso pagar algo para me cadastrar?</p>
+              <p className="text-muted-foreground">Não! O cadastro é 100% gratuito.</p>
             </div>
             <div>
-              <p className="font-medium text-foreground">O que acontece se eu não renovar?</p>
-              <p className="text-muted-foreground">Seu perfil deixa de aparecer na busca, mas seus dados são mantidos.</p>
+              <p className="font-medium text-foreground">Quando a comissão é cobrada?</p>
+              <p className="text-muted-foreground">Apenas quando um pacote de aulas é fechado entre você e um aluno.</p>
             </div>
             <div>
-              <p className="font-medium text-foreground">Como funciona a taxa por aula?</p>
-              <p className="text-muted-foreground">É um percentual descontado do valor de cada pacote vendido.</p>
+              <p className="font-medium text-foreground">Como recebo meu pagamento?</p>
+              <p className="text-muted-foreground">O valor é repassado após a conclusão do pacote, já descontada a comissão.</p>
             </div>
           </div>
         </Card>

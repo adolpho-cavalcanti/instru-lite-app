@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { OPCOES_PACOTE } from '@/types';
+import { OPCOES_PACOTE, TAXA_PLATAFORMA } from '@/types';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -10,13 +10,13 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Check, Clock, Star, Shield, MessageCircle } from 'lucide-react';
+import { Check, Clock, Star, Shield, MessageCircle, Percent } from 'lucide-react';
 
 export default function ComprarPacotePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { instrutores } = useAuth();
-  const { criarPacote, verificarAssinaturaAtiva } = useBusiness();
+  const { criarPacote } = useBusiness();
   const [selectedPacote, setSelectedPacote] = useState<number | null>(10);
   const [loading, setLoading] = useState(false);
 
@@ -29,8 +29,6 @@ export default function ComprarPacotePage() {
       </div>
     );
   }
-
-  const assinaturaAtiva = verificarAssinaturaAtiva(instrutor.id);
 
   const calcularPreco = (horas: number) => {
     const opcao = OPCOES_PACOTE.find(o => o.horas === horas);
@@ -89,12 +87,10 @@ export default function ComprarPacotePage() {
                 R$ {instrutor.precoHora}/hora
               </p>
             </div>
-            {assinaturaAtiva && (
-              <Badge variant="secondary" className="bg-primary/10 text-primary">
-                <Shield className="w-3 h-3 mr-1" />
-                Verificado
-              </Badge>
-            )}
+            <Badge variant="secondary" className="bg-primary/10 text-primary">
+              <Shield className="w-3 h-3 mr-1" />
+              Verificado
+            </Badge>
           </div>
         </Card>
 
@@ -191,6 +187,14 @@ export default function ComprarPacotePage() {
             </li>
           </ul>
         </Card>
+
+        {/* Info taxa */}
+        <div className="bg-muted/50 rounded-lg p-3 flex items-center gap-2">
+          <Percent className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            Taxa de {TAXA_PLATAFORMA}% da plataforma já inclusa no valor
+          </p>
+        </div>
 
         {/* Aviso de segurança */}
         <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4">

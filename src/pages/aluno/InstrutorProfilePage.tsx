@@ -1,7 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Heart, Star, MapPin, Car, Clock, Shield, Crown, Zap } from 'lucide-react';
+import { Heart, Star, MapPin, Car, Clock, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBusiness } from '@/contexts/BusinessContext';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { StarRating } from '@/components/StarRating';
@@ -13,7 +12,6 @@ export default function InstrutorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { instrutores, toggleFavorito, isFavorito, currentUser } = useAuth();
-  const { verificarAssinaturaAtiva } = useBusiness();
   
   const instrutor = instrutores.find(i => i.id === id);
 
@@ -26,35 +24,6 @@ export default function InstrutorProfilePage() {
   }
 
   const favorito = isFavorito(instrutor.id);
-  const assinaturaAtiva = verificarAssinaturaAtiva(instrutor.id);
-
-  const getPlanoBadge = () => {
-    if (!assinaturaAtiva || !instrutor.assinaturaPlano) return null;
-    
-    switch (instrutor.assinaturaPlano) {
-      case 'premium':
-        return (
-          <Badge className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-0">
-            <Crown className="w-3 h-3 mr-1" />
-            Premium
-          </Badge>
-        );
-      case 'profissional':
-        return (
-          <Badge className="bg-primary/10 text-primary border-primary/20">
-            <Zap className="w-3 h-3 mr-1" />
-            Profissional
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="secondary">
-            <Shield className="w-3 h-3 mr-1" />
-            Verificado
-          </Badge>
-        );
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -70,18 +39,16 @@ export default function InstrutorProfilePage() {
                 alt={instrutor.nome}
                 className="w-24 h-24 rounded-2xl object-cover shadow-card"
               />
-              {instrutor.assinaturaPlano === 'premium' && assinaturaAtiva && (
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full flex items-center justify-center">
-                  <Crown className="w-3.5 h-3.5 text-white" />
-                </div>
-              )}
             </div>
             <div className="flex-1 pt-1">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h1 className="text-xl font-bold text-foreground">
                   {instrutor.nome}
                 </h1>
-                {getPlanoBadge()}
+                <Badge variant="secondary">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Verificado
+                </Badge>
               </div>
               <div className="flex items-center gap-2 mb-2">
                 <StarRating rating={instrutor.avaliacaoMedia} size="sm" />
@@ -122,7 +89,7 @@ export default function InstrutorProfilePage() {
                 R${instrutor.precoHora}<span className="text-sm font-normal text-muted-foreground">/hora</span>
               </p>
             </div>
-            {instrutor.rankingPosicao && instrutor.rankingPosicao <= 3 && assinaturaAtiva && (
+            {instrutor.rankingPosicao && instrutor.rankingPosicao <= 3 && (
               <div className="text-center">
                 <div className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold",
@@ -137,21 +104,13 @@ export default function InstrutorProfilePage() {
             )}
           </div>
           
-          {assinaturaAtiva ? (
-            <Button 
-              className="w-full" 
-              size="lg"
-              onClick={() => navigate(`/instrutor/${instrutor.id}/comprar`)}
-            >
-              Contratar pacote de aulas
-            </Button>
-          ) : (
-            <div className="bg-yellow-50 dark:bg-yellow-950/30 rounded-lg p-3 text-center">
-              <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                Este instrutor não está disponível no momento
-              </p>
-            </div>
-          )}
+          <Button 
+            className="w-full" 
+            size="lg"
+            onClick={() => navigate(`/instrutor/${instrutor.id}/comprar`)}
+          >
+            Contratar pacote de aulas
+          </Button>
         </div>
 
         {/* Info Grid */}
