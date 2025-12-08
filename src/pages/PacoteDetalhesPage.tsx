@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -8,7 +9,8 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, CheckCircle, XCircle, Star } from 'lucide-react';
+import { toast } from 'sonner';
+import { Calendar, CheckCircle, Star, Plus, Minus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -20,17 +22,13 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
 };
 
-const AULA_STATUS_ICONS: Record<string, { icon: typeof CheckCircle; color: string }> = {
-  agendada: { icon: Clock, color: 'text-blue-500' },
-  realizada: { icon: CheckCircle, color: 'text-green-500' },
-  cancelada: { icon: XCircle, color: 'text-red-500' },
-};
-
 export default function PacoteDetalhesPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser, instrutores, alunos } = useAuth();
-  const { getPacoteById, podeAvaliar, cancelarPacote } = useBusiness();
+  const { getPacoteById, podeAvaliar, cancelarPacote, confirmarPacote, registrarHorasRealizadas } = useBusiness();
+
+  const [horasParaRegistrar, setHorasParaRegistrar] = useState(1);
 
   const pacote = id ? getPacoteById(id) : undefined;
 
@@ -46,16 +44,39 @@ export default function PacoteDetalhesPage() {
   }
 
   const isAluno = currentUser?.tipo === 'aluno';
+  const isInstrutor = currentUser?.tipo === 'instrutor';
   const instrutor = instrutores.find(i => i.id === pacote.instrutorId);
   const aluno = alunos.find(a => a.id === pacote.alunoId);
   const outroUsuario = isAluno ? instrutor : aluno;
   const statusInfo = STATUS_LABELS[pacote.status];
   const progresso = (pacote.horasUtilizadas / pacote.quantidadeHoras) * 100;
   const canRate = podeAvaliar(pacote.id);
+  const horasRestantes = pacote.quantidadeHoras - pacote.horasUtilizadas;
+
+  const handleConfirmar = () => {
+    confirmarPacote(pacote.id);
+    toast.success('Pacote confirmado!');
+  };
 
   const handleCancelar = () => {
     cancelarPacote(pacote.id);
+    toast.info('Pacote cancelado');
     navigate(-1);
+  };
+
+  const handleRegistrarHoras = () => {
+    if (horasParaRegistrar <= 0 || horasParaRegistrar > horasRestantes) return;
+    
+    registrarHorasRealizadas(pacote.id, horasParaRegistrar);
+    
+    if (horasParaRegistrar >= horasRestantes) {
+      toast.success('Pacote concluído!', {
+        description: 'O aluno agora pode avaliar suas aulas.',
+      });
+    } else {
+      toast.success(`${horasParaRegistrar}h registrada(s) com sucesso!`);
+    }
+    setHorasParaRegistrar(1);
   };
 
   return (
@@ -87,17 +108,95 @@ export default function PacoteDetalhesPage() {
           <h3 className="font-medium text-foreground mb-3">Progresso do pacote</h3>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Horas utilizadas</span>
+              <span className="text-muted-foreground">Horas realizadas</span>
               <span className="font-medium text-foreground">
                 {pacote.horasUtilizadas}h de {pacote.quantidadeHoras}h
               </span>
             </div>
             <Progress value={progresso} className="h-3" />
-            <p className="text-xs text-muted-foreground text-right">
-              {pacote.quantidadeHoras - pacote.horasUtilizadas}h restantes
-            </p>
+            {pacote.status !== 'concluido' && (
+              <p className="text-xs text-muted-foreground text-right">
+                {horasRestantes}h restantes
+              </p>
+            )}
           </div>
         </Card>
+
+        {/* Ação do Instrutor - Registrar horas */}
+        {isInstrutor && ['confirmado', 'em_andamento'].includes(pacote.status) && horasRestantes > 0 && (
+          <Card className="p-4 border-primary/20 bg-primary/5">
+            <h3 className="font-medium text-foreground mb-3 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-primary" />
+              Registrar aulas realizadas
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Confirme as horas de aula que você realizou com este aluno.
+            </p>
+            
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setHorasParaRegistrar(Math.max(1, horasParaRegistrar - 1))}
+                disabled={horasParaRegistrar <= 1}
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <div className="text-center">
+                <p className="text-3xl font-bold text-foreground">{horasParaRegistrar}h</p>
+                <p className="text-xs text-muted-foreground">horas</p>
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setHorasParaRegistrar(Math.min(horasRestantes, horasParaRegistrar + 1))}
+                disabled={horasParaRegistrar >= horasRestantes}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <Button className="w-full" onClick={handleRegistrarHoras}>
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Confirmar {horasParaRegistrar}h realizada{horasParaRegistrar > 1 ? 's' : ''}
+            </Button>
+          </Card>
+        )}
+
+        {/* Ação do Instrutor - Confirmar pacote pendente */}
+        {isInstrutor && pacote.status === 'pendente' && (
+          <Card className="p-4 border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/30">
+            <h3 className="font-medium text-foreground mb-2">Solicitação pendente</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              O aluno {aluno?.nome} quer contratar {pacote.quantidadeHoras}h de aulas com você.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={handleCancelar}>
+                Recusar
+              </Button>
+              <Button className="flex-1" onClick={handleConfirmar}>
+                Confirmar
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Pacote concluído - mensagem para instrutor */}
+        {isInstrutor && pacote.status === 'concluido' && (
+          <Card className="p-4 bg-green-50 dark:bg-green-950/30">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-8 h-8 text-green-500" />
+              <div>
+                <h3 className="font-medium text-foreground">Pacote concluído!</h3>
+                <p className="text-sm text-muted-foreground">
+                  {pacote.avaliacaoRealizada 
+                    ? 'O aluno já avaliou suas aulas.' 
+                    : 'Aguardando avaliação do aluno.'}
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Informações do pacote */}
         <Card className="p-4">
@@ -132,48 +231,7 @@ export default function PacoteDetalhesPage() {
           </div>
         </Card>
 
-        {/* Lista de aulas */}
-        <Card className="p-4">
-          <h3 className="font-medium text-foreground mb-3">
-            Aulas ({pacote.aulas.length})
-          </h3>
-          {pacote.aulas.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Nenhuma aula agendada ainda
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {pacote.aulas.map((aula, index) => {
-                const StatusIcon = AULA_STATUS_ICONS[aula.status].icon;
-                const statusColor = AULA_STATUS_ICONS[aula.status].color;
-
-                return (
-                  <div
-                    key={aula.id}
-                    className="flex items-center gap-3 p-3 bg-accent/50 rounded-lg"
-                  >
-                    <div className={`p-2 rounded-full bg-background ${statusColor}`}>
-                      <StatusIcon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">
-                        Aula {index + 1} - {aula.duracao}h
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(aula.data), "dd/MM/yyyy", { locale: ptBR })} às {aula.horario}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="capitalize">
-                      {aula.status}
-                    </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
-
-        {/* Ações */}
+        {/* Ações do Aluno */}
         <div className="space-y-3">
           {canRate && (
             <Button
@@ -183,6 +241,17 @@ export default function PacoteDetalhesPage() {
               <Star className="w-4 h-4 mr-2" />
               Avaliar instrutor
             </Button>
+          )}
+
+          {pacote.avaliacaoRealizada && isAluno && (
+            <Card className="p-4 bg-green-50 dark:bg-green-950/30">
+              <div className="flex items-center gap-3">
+                <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                <p className="text-sm text-foreground">
+                  Você já avaliou este instrutor. Obrigado!
+                </p>
+              </div>
+            </Card>
           )}
 
           {['pendente', 'confirmado'].includes(pacote.status) && isAluno && (
