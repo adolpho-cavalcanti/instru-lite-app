@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const CIDADES = ['São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Curitiba', 'Salvador'];
-const CATEGORIAS = ['A', 'B', 'A/B', 'C', 'D', 'E'];
+const CATEGORIAS = ['A', 'B', 'C', 'D', 'E'];
 
 const DEFAULT_AVATAR_ALUNO = 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=200&h=200&fit=crop&crop=face';
 const DEFAULT_AVATAR_INSTRUTOR = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face';
@@ -29,7 +29,7 @@ export default function CadastroPage() {
 
   // Instructor specific fields
   const [credenciamentoDetran, setCredenciamentoDetran] = useState('');
-  const [categoria, setCategoria] = useState('');
+  const [categorias, setCategorias] = useState<string[]>([]);
   const [anosExperiencia, setAnosExperiencia] = useState('');
   const [precoHora, setPrecoHora] = useState('');
   const [bairrosAtendimento, setBairrosAtendimento] = useState('');
@@ -54,7 +54,7 @@ export default function CadastroPage() {
       toast.success('Cadastro realizado com sucesso!');
       navigate('/home');
     } else if (selectedType === 'instrutor') {
-      if (!credenciamentoDetran.trim() || !categoria || !anosExperiencia || !precoHora) {
+      if (!credenciamentoDetran.trim() || categorias.length === 0 || !anosExperiencia || !precoHora) {
         toast.error('Por favor, preencha todos os campos obrigatórios do instrutor.');
         return;
       }
@@ -70,7 +70,7 @@ export default function CadastroPage() {
         foto: fotoFinal,
         cidade,
         credenciamentoDetran: credenciamentoDetran.trim(),
-        categoria,
+        categoria: categorias.join('/'),
         anosExperiencia: parseInt(anosExperiencia),
         precoHora: parseFloat(precoHora),
         bairrosAtendimento: bairrosArray.length > 0 ? bairrosArray : ['Centro'],
@@ -219,20 +219,39 @@ export default function CadastroPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="categoria" className="flex items-center gap-2">
+                  <Label className="flex items-center gap-2">
                     <Car className="w-4 h-4" />
-                    Categoria *
+                    Categorias *
                   </Label>
-                  <Select value={categoria} onValueChange={setCategoria} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIAS.map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORIAS.map((cat) => {
+                      const isSelected = categorias.includes(cat);
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setCategorias(categorias.filter(c => c !== cat));
+                            } else {
+                              setCategorias([...categorias, cat]);
+                            }
+                          }}
+                          className={cn(
+                            "px-4 py-2 rounded-lg border-2 font-medium transition-all duration-200",
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card text-foreground border-border hover:border-primary/50"
+                          )}
+                        >
+                          {cat}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione todas as categorias que você ensina
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
