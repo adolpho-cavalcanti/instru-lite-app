@@ -22,10 +22,6 @@ export interface Instrutor {
   bio: string;
   avaliacaoMedia: number;
   avaliacoes: Avaliacao[];
-  // Modelo de assinatura
-  assinaturaAtiva: boolean;
-  assinaturaPlano?: 'basico' | 'profissional' | 'premium';
-  assinaturaExpira?: string;
   rankingPosicao?: number;
 }
 
@@ -64,7 +60,8 @@ export interface PacoteAulas {
   quantidadeHoras: number;
   horasUtilizadas: number;
   precoTotal: number;
-  taxaPlataforma: number; // Percentual da plataforma
+  taxaPlataforma: number; // Percentual da plataforma (fixo em 10%)
+  valorPlataforma: number; // Valor em reais que a plataforma recebe
   status: StatusPacote;
   dataCriacao: string;
   dataConfirmacao?: string;
@@ -74,63 +71,8 @@ export interface PacoteAulas {
   avaliacaoRealizada: boolean;
 }
 
-// Planos de Assinatura
-export interface PlanoAssinatura {
-  id: 'basico' | 'profissional' | 'premium';
-  nome: string;
-  preco: number;
-  descricao: string;
-  beneficios: string[];
-  destaque: boolean;
-  taxaAula: number; // Percentual cobrado por aula
-}
-
-export const PLANOS_ASSINATURA: PlanoAssinatura[] = [
-  {
-    id: 'basico',
-    nome: 'Básico',
-    preco: 49.90,
-    descricao: 'Ideal para começar',
-    beneficios: [
-      'Perfil público na plataforma',
-      'Receber até 5 avaliações/mês',
-      'Aparecer na busca',
-      'Receber solicitações de alunos',
-    ],
-    destaque: false,
-    taxaAula: 15,
-  },
-  {
-    id: 'profissional',
-    nome: 'Profissional',
-    preco: 99.90,
-    descricao: 'Mais visibilidade',
-    beneficios: [
-      'Tudo do plano Básico',
-      'Avaliações ilimitadas',
-      'Destaque na busca',
-      'Selo "Profissional"',
-      'Relatórios de desempenho',
-    ],
-    destaque: true,
-    taxaAula: 10,
-  },
-  {
-    id: 'premium',
-    nome: 'Premium',
-    preco: 199.90,
-    descricao: 'Máxima exposição',
-    beneficios: [
-      'Tudo do plano Profissional',
-      'Topo do ranking',
-      'Selo "Premium" dourado',
-      'Suporte prioritário',
-      'Sem taxa por aula',
-    ],
-    destaque: false,
-    taxaAula: 0,
-  },
-];
+// Taxa fixa da plataforma
+export const TAXA_PLATAFORMA = 10; // 10% de comissão
 
 // Opções de pacotes para alunos
 export interface OpcaoPacote {

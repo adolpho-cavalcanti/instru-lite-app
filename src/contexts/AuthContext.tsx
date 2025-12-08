@@ -50,31 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Load initial data
   useEffect(() => {
     // Load instrutores from localStorage or JSON
-    // Always merge with JSON to get latest subscription data
     const storedInstrutores = localStorage.getItem(INSTRUTORES_KEY);
     const jsonInstrutores = usersData.instrutores as Instrutor[];
     
     if (storedInstrutores) {
       const parsed = JSON.parse(storedInstrutores) as Instrutor[];
-      // Merge stored data with JSON defaults for subscription fields
-      const merged = parsed.map(stored => {
-        const jsonVersion = jsonInstrutores.find(j => j.id === stored.id);
-        if (jsonVersion && (!stored.assinaturaExpira || new Date(stored.assinaturaExpira) < new Date())) {
-          // Update with JSON subscription data if expired or missing
-          return {
-            ...stored,
-            assinaturaAtiva: jsonVersion.assinaturaAtiva,
-            assinaturaPlano: jsonVersion.assinaturaPlano,
-            assinaturaExpira: jsonVersion.assinaturaExpira,
-            rankingPosicao: jsonVersion.rankingPosicao,
-          };
-        }
-        return stored;
-      });
       // Add any new instructors from JSON that aren't in localStorage
-      const newFromJson = jsonInstrutores.filter(j => !merged.find(m => m.id === j.id));
-      setInstrutores([...merged, ...newFromJson]);
-      localStorage.setItem(INSTRUTORES_KEY, JSON.stringify([...merged, ...newFromJson]));
+      const newFromJson = jsonInstrutores.filter(j => !parsed.find(m => m.id === j.id));
+      setInstrutores([...parsed, ...newFromJson]);
+      localStorage.setItem(INSTRUTORES_KEY, JSON.stringify([...parsed, ...newFromJson]));
     } else {
       setInstrutores(jsonInstrutores);
     }
@@ -195,7 +179,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       bio: data.bio,
       avaliacaoMedia: 5.0,
       avaliacoes: [],
-      assinaturaAtiva: false,
     };
 
     const updatedInstrutores = [...instrutores, newInstrutor];

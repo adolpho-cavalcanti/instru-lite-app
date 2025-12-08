@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { PacoteAulas, StatusPacote, PLANOS_ASSINATURA, OPCOES_PACOTE } from '@/types';
+import { PacoteAulas, StatusPacote, OPCOES_PACOTE, TAXA_PLATAFORMA } from '@/types';
 import { useAuth } from './AuthContext';
 
 interface BusinessContextType {
@@ -13,11 +13,6 @@ interface BusinessContextType {
   getPacotesInstrutor: () => PacoteAulas[];
   getPacoteById: (pacoteId: string) => PacoteAulas | undefined;
   
-  // Assinatura Instrutor
-  assinarPlano: (plano: 'basico' | 'profissional' | 'premium') => void;
-  cancelarAssinatura: () => void;
-  verificarAssinaturaAtiva: (instrutorId: string) => boolean;
-  
   // Avaliações
   podeAvaliar: (pacoteId: string) => boolean;
   enviarAvaliacao: (pacoteId: string, nota: number, comentario: string) => void;
@@ -26,7 +21,6 @@ interface BusinessContextType {
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
 const PACOTES_KEY = 'instrutor_plus_pacotes';
-const TAXA_PLATAFORMA = 10; // 10% padrão
 
 export function BusinessProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
@@ -59,9 +53,8 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     const precoBase = instrutor.precoHora * horas;
     const precoComDesconto = precoBase * (1 - desconto / 100);
     
-    // Buscar taxa do plano do instrutor
-    const plano = PLANOS_ASSINATURA.find(p => p.id === instrutor.assinaturaPlano);
-    const taxaAula = plano?.taxaAula || TAXA_PLATAFORMA;
+    // Taxa fixa de 10%
+    const valorPlataforma = precoComDesconto * (TAXA_PLATAFORMA / 100);
 
     const novoPacote: PacoteAulas = {
       id: `pacote-${Date.now()}`,
@@ -70,7 +63,8 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       quantidadeHoras: horas,
       horasUtilizadas: 0,
       precoTotal: precoComDesconto,
-      taxaPlataforma: taxaAula,
+      taxaPlataforma: TAXA_PLATAFORMA,
+      valorPlataforma,
       status: 'pendente',
       dataCriacao: new Date().toISOString(),
       aulas: [],
@@ -144,47 +138,6 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     return pacotes.find(p => p.id === pacoteId);
   };
 
-  // ========== ASSINATURA ==========
-  const assinarPlano = (plano: 'basico' | 'profissional' | 'premium') => {
-    if (!currentUser || currentUser.tipo !== 'instrutor') return;
-
-    const instrutor = instrutores.find(i => i.id === currentUser.id);
-    if (!instrutor) return;
-
-    const expiraEm = new Date();
-    expiraEm.setMonth(expiraEm.getMonth() + 1);
-
-    updateInstrutor({
-      ...instrutor,
-      assinaturaAtiva: true,
-      assinaturaPlano: plano,
-      assinaturaExpira: expiraEm.toISOString(),
-    });
-  };
-
-  const cancelarAssinatura = () => {
-    if (!currentUser || currentUser.tipo !== 'instrutor') return;
-
-    const instrutor = instrutores.find(i => i.id === currentUser.id);
-    if (!instrutor) return;
-
-    updateInstrutor({
-      ...instrutor,
-      assinaturaAtiva: false,
-      assinaturaPlano: undefined,
-      assinaturaExpira: undefined,
-    });
-  };
-
-  const verificarAssinaturaAtiva = (instrutorId: string) => {
-    const instrutor = instrutores.find(i => i.id === instrutorId);
-    if (!instrutor) return false;
-    
-    if (!instrutor.assinaturaAtiva || !instrutor.assinaturaExpira) return false;
-    
-    return new Date(instrutor.assinaturaExpira) > new Date();
-  };
-
   // ========== AVALIAÇÕES ==========
   const podeAvaliar = (pacoteId: string): boolean => {
     const pacote = pacotes.find(p => p.id === pacoteId);
@@ -242,9 +195,6 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       getPacotesAluno,
       getPacotesInstrutor,
       getPacoteById,
-      assinarPlano,
-      cancelarAssinatura,
-      verificarAssinaturaAtiva,
       podeAvaliar,
       enviarAvaliacao,
     }}>
