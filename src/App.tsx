@@ -2,11 +2,85 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+
+// Pages
+import LoginPage from "./pages/LoginPage";
+import HomePage from "./pages/aluno/HomePage";
+import InstrutorProfilePage from "./pages/aluno/InstrutorProfilePage";
+import AvaliacoesPage from "./pages/aluno/AvaliacoesPage";
+import FavoritosPage from "./pages/aluno/FavoritosPage";
+import AlunoPerfilPage from "./pages/aluno/AlunoPerfilPage";
+import InstrutorHomePage from "./pages/instrutor/InstrutorHomePage";
+import InstrutorAvaliacoesPage from "./pages/instrutor/InstrutorAvaliacoesPage";
+import InstrutorPerfilPage from "./pages/instrutor/InstrutorPerfilPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function ProtectedRoute({ children, allowedType }: { children: React.ReactNode; allowedType?: 'aluno' | 'instrutor' }) {
+  const { currentUser } = useAuth();
+
+  if (!currentUser) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (allowedType && currentUser.tipo !== allowedType) {
+    return <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function AppRoutes() {
+  const { currentUser } = useAuth();
+
+  return (
+    <Routes>
+      {/* Login */}
+      <Route 
+        path="/" 
+        element={
+          currentUser 
+            ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
+            : <LoginPage />
+        } 
+      />
+
+      {/* Aluno Routes */}
+      <Route path="/home" element={
+        <ProtectedRoute allowedType="aluno"><HomePage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/:id" element={
+        <ProtectedRoute allowedType="aluno"><InstrutorProfilePage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/:id/avaliacoes" element={
+        <ProtectedRoute allowedType="aluno"><AvaliacoesPage /></ProtectedRoute>
+      } />
+      <Route path="/favoritos" element={
+        <ProtectedRoute allowedType="aluno"><FavoritosPage /></ProtectedRoute>
+      } />
+      <Route path="/perfil" element={
+        <ProtectedRoute allowedType="aluno"><AlunoPerfilPage /></ProtectedRoute>
+      } />
+
+      {/* Instrutor Routes */}
+      <Route path="/instrutor/home" element={
+        <ProtectedRoute allowedType="instrutor"><InstrutorHomePage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/avaliacoes" element={
+        <ProtectedRoute allowedType="instrutor"><InstrutorAvaliacoesPage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/perfil" element={
+        <ProtectedRoute allowedType="instrutor"><InstrutorPerfilPage /></ProtectedRoute>
+      } />
+
+      {/* 404 */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -14,11 +88,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

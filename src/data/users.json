@@ -1,0 +1,145 @@
+{
+  "instrutores": [
+    {
+      "id": "inst-1",
+      "nome": "Carlos Eduardo Silva",
+      "foto": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face",
+      "credenciamentoDetran": "SP-12345",
+      "categoria": "B",
+      "anosExperiencia": 12,
+      "precoHora": 85,
+      "cidade": "São Paulo",
+      "bairrosAtendimento": ["Pinheiros", "Vila Madalena", "Perdizes", "Consolação"],
+      "temVeiculo": true,
+      "bio": "Instrutor experiente com metodologia focada em segurança e confiança. Especializado em alunos ansiosos e com medo de dirigir.",
+      "avaliacaoMedia": 4.9,
+      "avaliacoes": [
+        { "id": "av-1", "autor": "Ana Clara", "nota": 5, "comentario": "Excelente instrutor! Muito paciente e didático.", "data": "2024-11-15" },
+        { "id": "av-2", "autor": "Pedro Henrique", "nota": 5, "comentario": "Consegui passar de primeira graças ao Carlos.", "data": "2024-11-10" },
+        { "id": "av-3", "autor": "Marina Santos", "nota": 4, "comentario": "Muito bom, recomendo!", "data": "2024-10-28" }
+      ]
+    },
+    {
+      "id": "inst-2",
+      "nome": "Fernanda Oliveira",
+      "foto": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face",
+      "credenciamentoDetran": "RJ-67890",
+      "categoria": "A/B",
+      "anosExperiencia": 8,
+      "precoHora": 75,
+      "cidade": "Rio de Janeiro",
+      "bairrosAtendimento": ["Copacabana", "Ipanema", "Leblon", "Botafogo", "Flamengo"],
+      "temVeiculo": true,
+      "bio": "Instrutora certificada para carro e moto. Metodologia moderna e focada no resultado. Flexibilidade de horários.",
+      "avaliacaoMedia": 4.7,
+      "avaliacoes": [
+        { "id": "av-4", "autor": "Lucas Ferreira", "nota": 5, "comentario": "Fernanda é incrível! Muito profissional.", "data": "2024-11-12" },
+        { "id": "av-5", "autor": "Juliana Costa", "nota": 4, "comentario": "Ótima experiência, aprendi muito rápido.", "data": "2024-11-05" }
+      ]
+    },
+    {
+      "id": "inst-3",
+      "nome": "Roberto Almeida",
+      "foto": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face",
+      "credenciamentoDetran": "MG-54321",
+      "categoria": "B",
+      "anosExperiencia": 15,
+      "precoHora": 90,
+      "cidade": "Belo Horizonte",
+      "bairrosAtendimento": ["Savassi", "Funcionários", "Lourdes", "Santo Antônio"],
+      "temVeiculo": true,
+      "bio": "15 anos de experiência formando motoristas seguros. Especialista em direção defensiva e situações de trânsito intenso.",
+      "avaliacaoMedia": 4.8,
+      "avaliacoes": [
+        { "id": "av-6", "autor": "Beatriz Lima", "nota": 5, "comentario": "O melhor instrutor de BH!", "data": "2024-11-18" },
+        { "id": "av-7", "autor": "Gabriel Souza", "nota": 5, "comentario": "Muito experiente e tranquilo.", "data": "2024-11-01" },
+        { "id": "av-8", "autor": "Camila Rocha", "nota": 4, "comentario": "Recomendo demais!", "data": "2024-10-20" }
+      ]
+    },
+    {
+      "id": "inst-4",
+      "nome": "Mariana Costa",
+      "foto": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face",
+      "credenciamentoDetran": "PR-11223",
+      "categoria": "B",
+      "anosExperiencia": 5,
+      "precoHora": 65,
+      "cidade": "Curitiba",
+      "bairrosAtendimento": ["Batel", "Água Verde", "Centro", "Bigorrilho"],
+      "temVeiculo": true,
+      "bio": "Jovem e dinâmica, com foco em tornar as aulas leves e divertidas. Ideal para quem quer aprender sem estresse.",
+      "avaliacaoMedia": 4.6,
+      "avaliacoes": [
+        { "id": "av-9", "autor": "Thiago Martins", "nota": 5, "comentario": "Aulas super tranquilas e produtivas!", "data": "2024-11-14" },
+        { "id": "av-10", "autor": "Amanda Silva", "nota": 4, "comentario": "Gostei muito, bem atenciosa.", "data": "2024-11-08" }
+      ]
+    },
+    {
+      "id": "inst-5",
+      "nome": "José Santos",
+      "foto": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&crop=face",
+      "credenciamentoDetran": "BA-99887",
+      "categoria": "A/B",
+      "anosExperiencia": 10,
+      "precoHora": 70,
+      "cidade": "Salvador",
+      "bairrosAtendimento": ["Barra", "Ondina", "Rio Vermelho", "Pituba", "Itaigara"],
+      "temVeiculo": true,
+      "bio": "Instrutor completo para carro e moto. Conhecimento profundo do trânsito de Salvador. Aprovação garantida!",
+      "avaliacaoMedia": 4.5,
+      "avaliacoes": [
+        { "id": "av-11", "autor": "Carolina Dias", "nota": 5, "comentario": "José é muito dedicado!", "data": "2024-11-16" },
+        { "id": "av-12", "autor": "Rafael Nunes", "nota": 4, "comentario": "Bom instrutor, recomendo.", "data": "2024-10-30" }
+      ]
+    },
+    {
+      "id": "inst-6",
+      "nome": "Patricia Mendes",
+      "foto": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face",
+      "credenciamentoDetran": "SP-77665",
+      "categoria": "B",
+      "anosExperiencia": 7,
+      "precoHora": 80,
+      "cidade": "São Paulo",
+      "bairrosAtendimento": ["Moema", "Itaim Bibi", "Vila Olímpia", "Brooklin"],
+      "temVeiculo": true,
+      "bio": "Especialista em ensinar mulheres a dirigir com segurança e autonomia. Ambiente acolhedor e sem julgamentos.",
+      "avaliacaoMedia": 4.9,
+      "avaliacoes": [
+        { "id": "av-13", "autor": "Fernanda Reis", "nota": 5, "comentario": "Melhor decisão que tomei! A Patricia é maravilhosa.", "data": "2024-11-17" },
+        { "id": "av-14", "autor": "Letícia Campos", "nota": 5, "comentario": "Super paciente e compreensiva.", "data": "2024-11-11" },
+        { "id": "av-15", "autor": "Isabela Gomes", "nota": 5, "comentario": "Perdi o medo de dirigir graças a ela!", "data": "2024-10-25" }
+      ]
+    }
+  ],
+  "alunos": [
+    {
+      "id": "aluno-1",
+      "nome": "Lucas Ferreira",
+      "foto": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&h=200&fit=crop&crop=face",
+      "cidade": "São Paulo",
+      "favoritos": []
+    },
+    {
+      "id": "aluno-2",
+      "nome": "Ana Clara Ribeiro",
+      "foto": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&fit=crop&crop=face",
+      "cidade": "Rio de Janeiro",
+      "favoritos": []
+    },
+    {
+      "id": "aluno-3",
+      "nome": "Pedro Henrique Souza",
+      "foto": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop&crop=face",
+      "cidade": "Belo Horizonte",
+      "favoritos": []
+    },
+    {
+      "id": "aluno-4",
+      "nome": "Mariana Santos",
+      "foto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=face",
+      "cidade": "Curitiba",
+      "favoritos": []
+    }
+  ]
+}
