@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { PacoteAulas, Aula, StatusPacote, PLANOS_ASSINATURA, OPCOES_PACOTE } from '@/types';
+import { PacoteAulas, StatusPacote, PLANOS_ASSINATURA, OPCOES_PACOTE } from '@/types';
 import { useAuth } from './AuthContext';
 
 interface BusinessContextType {
@@ -8,8 +8,7 @@ interface BusinessContextType {
   criarPacote: (instrutorId: string, horas: number) => PacoteAulas | null;
   confirmarPacote: (pacoteId: string) => void;
   cancelarPacote: (pacoteId: string) => void;
-  agendarAula: (pacoteId: string, data: string, horario: string, duracao: number) => void;
-  concluirAula: (pacoteId: string, aulaId: string) => void;
+  registrarHorasRealizadas: (pacoteId: string, horas: number) => void;
   getPacotesAluno: () => PacoteAulas[];
   getPacotesInstrutor: () => PacoteAulas[];
   getPacoteById: (pacoteId: string) => PacoteAulas | undefined;
@@ -109,46 +108,19 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     savePacotes(updated);
   };
 
-  const agendarAula = (pacoteId: string, data: string, horario: string, duracao: number) => {
-    const updated = pacotes.map(p => {
-      if (p.id === pacoteId) {
-        const novaAula: Aula = {
-          id: `aula-${Date.now()}`,
-          data,
-          horario,
-          duracao,
-          status: 'agendada',
-        };
-        return {
-          ...p,
-          status: 'em_andamento' as StatusPacote,
-          aulas: [...p.aulas, novaAula],
-        };
-      }
-      return p;
-    });
-    savePacotes(updated);
-  };
+  // Instrutor registra horas realizadas
+  const registrarHorasRealizadas = (pacoteId: string, horas: number) => {
+    if (!currentUser || currentUser.tipo !== 'instrutor') return;
 
-  const concluirAula = (pacoteId: string, aulaId: string) => {
     const updated = pacotes.map(p => {
-      if (p.id === pacoteId) {
-        const aulasAtualizadas = p.aulas.map(a => {
-          if (a.id === aulaId) {
-            return { ...a, status: 'realizada' as const };
-          }
-          return a;
-        });
-        
-        const aula = p.aulas.find(a => a.id === aulaId);
-        const novasHorasUtilizadas = p.horasUtilizadas + (aula?.duracao || 0);
+      if (p.id === pacoteId && p.instrutorId === currentUser.id) {
+        const novasHorasUtilizadas = Math.min(p.horasUtilizadas + horas, p.quantidadeHoras);
         const concluido = novasHorasUtilizadas >= p.quantidadeHoras;
 
         return {
           ...p,
-          aulas: aulasAtualizadas,
           horasUtilizadas: novasHorasUtilizadas,
-          status: concluido ? 'concluido' as StatusPacote : p.status,
+          status: concluido ? 'concluido' as StatusPacote : 'em_andamento' as StatusPacote,
           dataConclusao: concluido ? new Date().toISOString() : undefined,
           avaliacaoLiberada: concluido,
         };
@@ -266,8 +238,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       criarPacote,
       confirmarPacote,
       cancelarPacote,
-      agendarAula,
-      concluirAula,
+      registrarHorasRealizadas,
       getPacotesAluno,
       getPacotesInstrutor,
       getPacoteById,
