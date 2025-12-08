@@ -173,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       bio: data.bio,
       avaliacaoMedia: 5.0,
       avaliacoes: [],
+      assinaturaAtiva: false,
     };
 
     const updatedInstrutores = [...instrutores, newInstrutor];
