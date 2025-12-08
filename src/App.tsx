@@ -117,6 +117,9 @@ function AppRoutes() {
       <Route path="/instrutor/alunos" element={
         <ProtectedRoute allowedType="instrutor"><MeusAlunosPage /></ProtectedRoute>
       } />
+      <Route path="/instrutor/pacote/:id" element={
+        <ProtectedRoute allowedType="instrutor"><PacoteDetalhesPage /></ProtectedRoute>
+      } />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
