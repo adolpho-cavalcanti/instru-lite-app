@@ -1,15 +1,19 @@
-import { useParams, Link } from 'react-router-dom';
-import { Heart, Star, MapPin, Car, Clock, Shield, MessageCircle, Phone } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Heart, Star, MapPin, Car, Clock, Shield, Crown, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBusiness } from '@/contexts/BusinessContext';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { StarRating } from '@/components/StarRating';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 export default function InstrutorProfilePage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { instrutores, toggleFavorito, isFavorito, currentUser } = useAuth();
+  const { verificarAssinaturaAtiva } = useBusiness();
   
   const instrutor = instrutores.find(i => i.id === id);
 
@@ -22,6 +26,35 @@ export default function InstrutorProfilePage() {
   }
 
   const favorito = isFavorito(instrutor.id);
+  const assinaturaAtiva = verificarAssinaturaAtiva(instrutor.id);
+
+  const getPlanoBadge = () => {
+    if (!assinaturaAtiva || !instrutor.assinaturaPlano) return null;
+    
+    switch (instrutor.assinaturaPlano) {
+      case 'premium':
+        return (
+          <Badge className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-0">
+            <Crown className="w-3 h-3 mr-1" />
+            Premium
+          </Badge>
+        );
+      case 'profissional':
+        return (
+          <Badge className="bg-primary/10 text-primary border-primary/20">
+            <Zap className="w-3 h-3 mr-1" />
+            Profissional
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="secondary">
+            <Shield className="w-3 h-3 mr-1" />
+            Verificado
+          </Badge>
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -31,15 +64,25 @@ export default function InstrutorProfilePage() {
         {/* Profile Header */}
         <div className="relative -mt-2 mb-6">
           <div className="flex gap-4">
-            <img
-              src={instrutor.foto}
-              alt={instrutor.nome}
-              className="w-24 h-24 rounded-2xl object-cover shadow-card"
-            />
+            <div className="relative">
+              <img
+                src={instrutor.foto}
+                alt={instrutor.nome}
+                className="w-24 h-24 rounded-2xl object-cover shadow-card"
+              />
+              {instrutor.assinaturaPlano === 'premium' && assinaturaAtiva && (
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full flex items-center justify-center">
+                  <Crown className="w-3.5 h-3.5 text-white" />
+                </div>
+              )}
+            </div>
             <div className="flex-1 pt-1">
-              <h1 className="text-xl font-bold text-foreground mb-1">
-                {instrutor.nome}
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h1 className="text-xl font-bold text-foreground">
+                  {instrutor.nome}
+                </h1>
+                {getPlanoBadge()}
+              </div>
               <div className="flex items-center gap-2 mb-2">
                 <StarRating rating={instrutor.avaliacaoMedia} size="sm" />
                 <span className="text-sm font-medium">{instrutor.avaliacaoMedia.toFixed(1)}</span>
@@ -71,17 +114,44 @@ export default function InstrutorProfilePage() {
         </div>
 
         {/* Price Card */}
-        <div className="bg-accent rounded-2xl p-4 mb-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">Valor da aula</p>
-            <p className="text-2xl font-bold text-primary">
-              R${instrutor.precoHora}<span className="text-sm font-normal text-muted-foreground">/hora</span>
-            </p>
+        <div className="bg-accent rounded-2xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Valor da aula</p>
+              <p className="text-2xl font-bold text-primary">
+                R${instrutor.precoHora}<span className="text-sm font-normal text-muted-foreground">/hora</span>
+              </p>
+            </div>
+            {instrutor.rankingPosicao && instrutor.rankingPosicao <= 3 && assinaturaAtiva && (
+              <div className="text-center">
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold",
+                  instrutor.rankingPosicao === 1 ? "bg-yellow-100 text-yellow-600" :
+                  instrutor.rankingPosicao === 2 ? "bg-gray-100 text-gray-600" :
+                  "bg-amber-100 text-amber-700"
+                )}>
+                  #{instrutor.rankingPosicao}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Ranking</p>
+              </div>
+            )}
           </div>
-          <Button variant="hero" size="lg">
-            <Phone className="w-4 h-4 mr-2" />
-            Contatar
-          </Button>
+          
+          {assinaturaAtiva ? (
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={() => navigate(`/instrutor/${instrutor.id}/comprar`)}
+            >
+              Contratar pacote de aulas
+            </Button>
+          ) : (
+            <div className="bg-yellow-50 dark:bg-yellow-950/30 rounded-lg p-3 text-center">
+              <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                Este instrutor não está disponível no momento
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Info Grid */}
@@ -112,7 +182,7 @@ export default function InstrutorProfilePage() {
 
           <div className="bg-card rounded-xl p-3 border border-border">
             <div className="flex items-center gap-2 mb-1">
-              <Car className="w-4 h-4 text-success" />
+              <Car className="w-4 h-4 text-green-500" />
               <span className="text-xs text-muted-foreground">Veículo</span>
             </div>
             <p className="font-semibold text-foreground">
