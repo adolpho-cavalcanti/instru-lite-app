@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { BusinessProvider } from "@/contexts/BusinessContext";
 
 // Pages
 import LoginPage from "./pages/LoginPage";
@@ -13,9 +14,16 @@ import InstrutorProfilePage from "./pages/aluno/InstrutorProfilePage";
 import AvaliacoesPage from "./pages/aluno/AvaliacoesPage";
 import FavoritosPage from "./pages/aluno/FavoritosPage";
 import AlunoPerfilPage from "./pages/aluno/AlunoPerfilPage";
+import ComprarPacotePage from "./pages/aluno/ComprarPacotePage";
+import MinhasAulasPage from "./pages/aluno/MinhasAulasPage";
+import AvaliarInstrutorPage from "./pages/aluno/AvaliarInstrutorPage";
 import InstrutorHomePage from "./pages/instrutor/InstrutorHomePage";
 import InstrutorAvaliacoesPage from "./pages/instrutor/InstrutorAvaliacoesPage";
 import InstrutorPerfilPage from "./pages/instrutor/InstrutorPerfilPage";
+import AssinaturaPage from "./pages/instrutor/AssinaturaPage";
+import MeusAlunosPage from "./pages/instrutor/MeusAlunosPage";
+import ChatPage from "./pages/ChatPage";
+import ConversasPage from "./pages/ConversasPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,8 +83,17 @@ function AppRoutes() {
       <Route path="/instrutor/:id/avaliacoes" element={
         <ProtectedRoute allowedType="aluno"><AvaliacoesPage /></ProtectedRoute>
       } />
+      <Route path="/instrutor/:id/comprar" element={
+        <ProtectedRoute allowedType="aluno"><ComprarPacotePage /></ProtectedRoute>
+      } />
       <Route path="/favoritos" element={
         <ProtectedRoute allowedType="aluno"><FavoritosPage /></ProtectedRoute>
+      } />
+      <Route path="/minhas-aulas" element={
+        <ProtectedRoute allowedType="aluno"><MinhasAulasPage /></ProtectedRoute>
+      } />
+      <Route path="/avaliar/:pacoteId" element={
+        <ProtectedRoute allowedType="aluno"><AvaliarInstrutorPage /></ProtectedRoute>
       } />
       <Route path="/perfil" element={
         <ProtectedRoute allowedType="aluno"><AlunoPerfilPage /></ProtectedRoute>
@@ -92,6 +109,20 @@ function AppRoutes() {
       <Route path="/instrutor/perfil" element={
         <ProtectedRoute allowedType="instrutor"><InstrutorPerfilPage /></ProtectedRoute>
       } />
+      <Route path="/instrutor/assinatura" element={
+        <ProtectedRoute allowedType="instrutor"><AssinaturaPage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/alunos" element={
+        <ProtectedRoute allowedType="instrutor"><MeusAlunosPage /></ProtectedRoute>
+      } />
+
+      {/* Shared Routes */}
+      <Route path="/conversas" element={
+        <ProtectedRoute><ConversasPage /></ProtectedRoute>
+      } />
+      <Route path="/chat/:conversaId" element={
+        <ProtectedRoute><ChatPage /></ProtectedRoute>
+      } />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
@@ -106,7 +137,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
+          <BusinessProvider>
+            <AppRoutes />
+          </BusinessProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
