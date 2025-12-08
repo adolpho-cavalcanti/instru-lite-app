@@ -45,7 +45,7 @@ export function InstrutorCard({ instrutor, className }: InstrutorCardProps) {
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <div>
+            <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-foreground truncate">
                 {instrutor.nome}
               </h3>
@@ -63,7 +63,7 @@ export function InstrutorCard({ instrutor, className }: InstrutorCardProps) {
             {currentUser?.tipo === 'aluno' && (
               <button
                 onClick={handleFavoriteClick}
-                className="p-2 -m-2 rounded-full hover:bg-accent transition-colors"
+                className="p-2 -m-2 rounded-full hover:bg-accent transition-colors flex-shrink-0"
               >
                 <Heart
                   className={cn(
@@ -82,23 +82,25 @@ export function InstrutorCard({ instrutor, className }: InstrutorCardProps) {
             <span className="truncate">{instrutor.cidade}</span>
           </div>
 
-          <div className="flex items-center gap-3 mt-3">
-            <span className="inline-flex items-center px-2 py-1 bg-accent rounded-md text-xs font-medium text-accent-foreground">
-              Cat. {instrutor.categoria}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3.5 h-3.5" />
-              {instrutor.anosExperiencia} anos
-            </span>
+          <div className="flex items-center justify-between gap-3 mt-3">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center px-2 py-1 bg-accent rounded-md text-xs font-medium text-accent-foreground">
+                Cat. {instrutor.categoria}
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3.5 h-3.5" />
+                {instrutor.anosExperiencia} anos
+              </span>
+            </div>
+            
+            {/* Price */}
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-lg font-bold text-primary">
+                R${instrutor.precoHora}
+              </span>
+              <span className="text-xs text-muted-foreground">/h</span>
+            </div>
           </div>
-        </div>
-
-        {/* Price */}
-        <div className="flex-shrink-0 text-right">
-          <p className="text-lg font-bold text-primary">
-            R${instrutor.precoHora}
-          </p>
-          <p className="text-xs text-muted-foreground">/hora</p>
         </div>
       </div>
     </Link>
