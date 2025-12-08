@@ -9,7 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { Users, MessageCircle, Check, X, Clock, ChevronRight } from 'lucide-react';
+import { Users, Check, X, Clock, ChevronRight } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pendente: { label: 'Aguardando confirmação', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
@@ -22,17 +22,12 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export default function MeusAlunosPage() {
   const navigate = useNavigate();
   const { alunos } = useAuth();
-  const { getPacotesInstrutor, confirmarPacote, cancelarPacote, getConversas } = useBusiness();
+  const { getPacotesInstrutor, confirmarPacote, cancelarPacote } = useBusiness();
 
   const pacotes = getPacotesInstrutor();
-  const conversas = getConversas();
 
   const getAluno = (alunoId: string) => {
     return alunos.find(a => a.id === alunoId);
-  };
-
-  const getConversa = (alunoId: string) => {
-    return conversas.find(c => c.alunoId === alunoId);
   };
 
   const handleConfirmar = (pacoteId: string) => {
@@ -131,7 +126,6 @@ export default function MeusAlunosPage() {
                 <div className="space-y-3">
                   {pacotesAtivos.map((pacote) => {
                     const aluno = getAluno(pacote.alunoId);
-                    const conversa = getConversa(pacote.alunoId);
                     const progresso = (pacote.horasUtilizadas / pacote.quantidadeHoras) * 100;
                     const statusInfo = STATUS_LABELS[pacote.status];
 
@@ -165,27 +159,14 @@ export default function MeusAlunosPage() {
                             <Progress value={progresso} className="h-2" />
                           </div>
 
-                          <div className="flex gap-2">
-                            {conversa && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => navigate(`/chat/${conversa.id}`)}
-                              >
-                                <MessageCircle className="w-4 h-4 mr-2" />
-                                Chat
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              className="flex-1"
-                              onClick={() => navigate(`/instrutor/pacote/${pacote.id}`)}
-                            >
-                              Gerenciar
-                              <ChevronRight className="w-4 h-4 ml-1" />
-                            </Button>
-                          </div>
+                          <Button
+                            size="sm"
+                            className="w-full"
+                            onClick={() => navigate(`/instrutor/pacote/${pacote.id}`)}
+                          >
+                            Gerenciar
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
                         </div>
                       </Card>
                     );

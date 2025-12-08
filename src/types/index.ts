@@ -74,28 +74,6 @@ export interface PacoteAulas {
   avaliacaoRealizada: boolean;
 }
 
-// Sistema de Mensagens/Chat
-export interface Mensagem {
-  id: string;
-  conversaId: string;
-  remetenteId: string;
-  remetenteTipo: UserType;
-  conteudo: string;
-  dataEnvio: string;
-  lida: boolean;
-}
-
-export interface Conversa {
-  id: string;
-  alunoId: string;
-  instrutorId: string;
-  pacoteId?: string; // Conversa pode ser vinculada a um pacote
-  mensagens: Mensagem[];
-  ultimaMensagem?: string;
-  dataUltimaMensagem?: string;
-  ativa: boolean;
-}
-
 // Planos de Assinatura
 export interface PlanoAssinatura {
   id: 'basico' | 'profissional' | 'premium';
@@ -117,7 +95,7 @@ export const PLANOS_ASSINATURA: PlanoAssinatura[] = [
       'Perfil público na plataforma',
       'Receber até 5 avaliações/mês',
       'Aparecer na busca',
-      'Chat com alunos',
+      'Receber solicitações de alunos',
     ],
     destaque: false,
     taxaAula: 15,

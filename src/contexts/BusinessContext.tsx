@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { PacoteAulas, Conversa, Mensagem, Aula, StatusPacote, PLANOS_ASSINATURA, OPCOES_PACOTE } from '@/types';
+import { PacoteAulas, Aula, StatusPacote, PLANOS_ASSINATURA, OPCOES_PACOTE } from '@/types';
 import { useAuth } from './AuthContext';
 
 interface BusinessContextType {
@@ -14,15 +14,6 @@ interface BusinessContextType {
   getPacotesInstrutor: () => PacoteAulas[];
   getPacoteById: (pacoteId: string) => PacoteAulas | undefined;
   
-  // Conversas/Chat
-  conversas: Conversa[];
-  getConversas: () => Conversa[];
-  getConversa: (conversaId: string) => Conversa | undefined;
-  getOuCriarConversa: (alunoId: string, instrutorId: string, pacoteId?: string) => Conversa;
-  enviarMensagem: (conversaId: string, conteudo: string) => void;
-  marcarComoLida: (conversaId: string) => void;
-  getConversasNaoLidas: () => number;
-  
   // Assinatura Instrutor
   assinarPlano: (plano: 'basico' | 'profissional' | 'premium') => void;
   cancelarAssinatura: () => void;
@@ -36,13 +27,11 @@ interface BusinessContextType {
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
 const PACOTES_KEY = 'instrutor_plus_pacotes';
-const CONVERSAS_KEY = 'instrutor_plus_conversas';
 const TAXA_PLATAFORMA = 10; // 10% padrão
 
 export function BusinessProvider({ children }: { children: ReactNode }) {
   const { currentUser, instrutores, updateInstrutor } = useAuth();
   const [pacotes, setPacotes] = useState<PacoteAulas[]>([]);
-  const [conversas, setConversas] = useState<Conversa[]>([]);
 
   // Load initial data
   useEffect(() => {
@@ -50,23 +39,12 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     if (storedPacotes) {
       setPacotes(JSON.parse(storedPacotes));
     }
-
-    const storedConversas = localStorage.getItem(CONVERSAS_KEY);
-    if (storedConversas) {
-      setConversas(JSON.parse(storedConversas));
-    }
   }, []);
 
   // Persist pacotes
   const savePacotes = (newPacotes: PacoteAulas[]) => {
     setPacotes(newPacotes);
     localStorage.setItem(PACOTES_KEY, JSON.stringify(newPacotes));
-  };
-
-  // Persist conversas
-  const saveConversas = (newConversas: Conversa[]) => {
-    setConversas(newConversas);
-    localStorage.setItem(CONVERSAS_KEY, JSON.stringify(newConversas));
   };
 
   // ========== PACOTES ==========
@@ -102,9 +80,6 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
     const newPacotes = [...pacotes, novoPacote];
     savePacotes(newPacotes);
-
-    // Criar conversa automática
-    getOuCriarConversa(currentUser.id, instrutorId, novoPacote.id);
 
     return novoPacote;
   };
@@ -194,102 +169,6 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
   const getPacoteById = (pacoteId: string) => {
     return pacotes.find(p => p.id === pacoteId);
-  };
-
-  // ========== CONVERSAS ==========
-  const getConversas = () => {
-    if (!currentUser) return [];
-    return conversas.filter(c => 
-      c.ativa && (
-        (currentUser.tipo === 'aluno' && c.alunoId === currentUser.id) ||
-        (currentUser.tipo === 'instrutor' && c.instrutorId === currentUser.id)
-      )
-    ).sort((a, b) => {
-      const dateA = a.dataUltimaMensagem ? new Date(a.dataUltimaMensagem).getTime() : 0;
-      const dateB = b.dataUltimaMensagem ? new Date(b.dataUltimaMensagem).getTime() : 0;
-      return dateB - dateA;
-    });
-  };
-
-  const getConversa = (conversaId: string) => {
-    return conversas.find(c => c.id === conversaId);
-  };
-
-  const getOuCriarConversa = (alunoId: string, instrutorId: string, pacoteId?: string): Conversa => {
-    // Buscar conversa existente
-    let conversa = conversas.find(c => 
-      c.alunoId === alunoId && c.instrutorId === instrutorId && c.ativa
-    );
-
-    if (!conversa) {
-      conversa = {
-        id: `conversa-${Date.now()}`,
-        alunoId,
-        instrutorId,
-        pacoteId,
-        mensagens: [],
-        ativa: true,
-      };
-      const newConversas = [...conversas, conversa];
-      saveConversas(newConversas);
-    }
-
-    return conversa;
-  };
-
-  const enviarMensagem = (conversaId: string, conteudo: string) => {
-    if (!currentUser || !conteudo.trim()) return;
-
-    const novaMensagem: Mensagem = {
-      id: `msg-${Date.now()}`,
-      conversaId,
-      remetenteId: currentUser.id,
-      remetenteTipo: currentUser.tipo,
-      conteudo: conteudo.trim(),
-      dataEnvio: new Date().toISOString(),
-      lida: false,
-    };
-
-    const updated = conversas.map(c => {
-      if (c.id === conversaId) {
-        return {
-          ...c,
-          mensagens: [...c.mensagens, novaMensagem],
-          ultimaMensagem: conteudo.trim(),
-          dataUltimaMensagem: novaMensagem.dataEnvio,
-        };
-      }
-      return c;
-    });
-
-    saveConversas(updated);
-  };
-
-  const marcarComoLida = (conversaId: string) => {
-    if (!currentUser) return;
-
-    const updated = conversas.map(c => {
-      if (c.id === conversaId) {
-        const mensagensAtualizadas = c.mensagens.map(m => {
-          if (m.remetenteId !== currentUser.id && !m.lida) {
-            return { ...m, lida: true };
-          }
-          return m;
-        });
-        return { ...c, mensagens: mensagensAtualizadas };
-      }
-      return c;
-    });
-
-    saveConversas(updated);
-  };
-
-  const getConversasNaoLidas = () => {
-    if (!currentUser) return 0;
-    
-    return getConversas().filter(c => 
-      c.mensagens.some(m => m.remetenteId !== currentUser.id && !m.lida)
-    ).length;
   };
 
   // ========== ASSINATURA ==========
@@ -391,13 +270,6 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       getPacotesAluno,
       getPacotesInstrutor,
       getPacoteById,
-      conversas,
-      getConversas,
-      getConversa,
-      getOuCriarConversa,
-      enviarMensagem,
-      marcarComoLida,
-      getConversasNaoLidas,
       assinarPlano,
       cancelarAssinatura,
       verificarAssinaturaAtiva,
