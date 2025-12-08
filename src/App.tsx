@@ -22,8 +22,6 @@ import InstrutorAvaliacoesPage from "./pages/instrutor/InstrutorAvaliacoesPage";
 import InstrutorPerfilPage from "./pages/instrutor/InstrutorPerfilPage";
 import AssinaturaPage from "./pages/instrutor/AssinaturaPage";
 import MeusAlunosPage from "./pages/instrutor/MeusAlunosPage";
-import ChatPage from "./pages/ChatPage";
-import ConversasPage from "./pages/ConversasPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -114,14 +112,6 @@ function AppRoutes() {
       } />
       <Route path="/instrutor/alunos" element={
         <ProtectedRoute allowedType="instrutor"><MeusAlunosPage /></ProtectedRoute>
-      } />
-
-      {/* Shared Routes */}
-      <Route path="/conversas" element={
-        <ProtectedRoute><ConversasPage /></ProtectedRoute>
-      } />
-      <Route path="/chat/:conversaId" element={
-        <ProtectedRoute><ChatPage /></ProtectedRoute>
       } />
 
       {/* 404 */}
