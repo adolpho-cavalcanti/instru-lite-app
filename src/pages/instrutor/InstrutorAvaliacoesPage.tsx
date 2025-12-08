@@ -2,12 +2,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { StarRating } from '@/components/StarRating';
-import { Instrutor } from '@/types';
 
 export default function InstrutorAvaliacoesPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, instrutores } = useAuth();
 
-  const instrutor = currentUser?.data as Instrutor;
+  // Buscar dados atualizados do array de instrutores
+  const instrutor = instrutores.find(i => i.id === currentUser?.id);
 
   if (!instrutor) return null;
 
