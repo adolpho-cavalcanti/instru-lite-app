@@ -1,17 +1,17 @@
 import { useState, useMemo } from 'react';
 import { Search, Filter, X } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthNew } from '@/contexts/AuthContextNew';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
-import { InstrutorCard } from '@/components/InstrutorCard';
+import { InstrutorCardNew } from '@/components/InstrutorCardNew';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const CIDADES = ['Todas', 'São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Curitiba', 'Salvador'];
-const CATEGORIAS = ['Todas', 'B', 'A/B'];
+const CATEGORIAS = ['Todas', 'B', 'A', 'AB', 'C', 'D', 'E'];
 
 export default function HomePage() {
-  const { instrutores, currentUser } = useAuth();
+  const { instrutores, profile } = useAuthNew();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCidade, setSelectedCidade] = useState('Todas');
   const [selectedCategoria, setSelectedCategoria] = useState('Todas');
@@ -19,9 +19,12 @@ export default function HomePage() {
 
   const filteredInstrutores = useMemo(() => {
     return instrutores.filter(instrutor => {
-      const matchesSearch = instrutor.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        instrutor.cidade.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCidade = selectedCidade === 'Todas' || instrutor.cidade === selectedCidade;
+      const nome = instrutor.profile?.nome || '';
+      const cidade = instrutor.profile?.cidade || '';
+      
+      const matchesSearch = nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        cidade.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCidade = selectedCidade === 'Todas' || cidade === selectedCidade;
       const matchesCategoria = selectedCategoria === 'Todas' || instrutor.categoria === selectedCategoria;
       
       return matchesSearch && matchesCidade && matchesCategoria;
@@ -45,7 +48,7 @@ export default function HomePage() {
         <div className="mb-4">
           <p className="text-muted-foreground">
             Olá, <span className="text-foreground font-medium">
-              {(currentUser?.data as { nome: string })?.nome?.split(' ')[0]}
+              {profile?.nome?.split(' ')[0]}
             </span>
           </p>
           <h2 className="text-xl font-bold text-foreground">
@@ -143,7 +146,7 @@ export default function HomePage() {
           </p>
 
           {filteredInstrutores.map((instrutor, index) => (
-            <InstrutorCard
+            <InstrutorCardNew
               key={instrutor.id}
               instrutor={instrutor}
               className={`stagger-${Math.min(index + 1, 6)}`}

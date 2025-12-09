@@ -1,10 +1,10 @@
 import { Home, Heart, User, Star, Calendar, Users, CreditCard } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthNew } from '@/contexts/AuthContextNew';
 
 export function BottomNav() {
-  const { currentUser } = useAuth();
+  const { userType } = useAuthNew();
 
   const alunoLinks = [
     { to: '/home', icon: Home, label: 'Início' },
@@ -21,7 +21,7 @@ export function BottomNav() {
     { to: '/instrutor/perfil', icon: User, label: 'Perfil' },
   ];
 
-  const links = currentUser?.tipo === 'instrutor' ? instrutorLinks : alunoLinks;
+  const links = userType === 'instrutor' ? instrutorLinks : alunoLinks;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-bottom z-50">
