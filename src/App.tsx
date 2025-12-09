@@ -3,12 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AuthProviderNew, useAuthNew } from "@/contexts/AuthContextNew";
 import { BusinessProvider } from "@/contexts/BusinessContext";
 
 // Pages
-import LoginPage from "./pages/LoginPage";
-import CadastroPage from "./pages/CadastroPage";
+import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/aluno/HomePage";
 import InstrutorProfilePage from "./pages/aluno/InstrutorProfilePage";
 import AvaliacoesPage from "./pages/aluno/AvaliacoesPage";
@@ -24,51 +23,63 @@ import InstrutorPerfilPage from "./pages/instrutor/InstrutorPerfilPage";
 import AssinaturaPage from "./pages/instrutor/AssinaturaPage";
 import MeusAlunosPage from "./pages/instrutor/MeusAlunosPage";
 import NotFound from "./pages/NotFound";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children, allowedType }: { children: React.ReactNode; allowedType?: 'aluno' | 'instrutor' }) {
-  const { currentUser } = useAuth();
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    </div>
+  );
+}
 
-  if (!currentUser) {
-    return <Navigate to="/" replace />;
+function ProtectedRoute({ children, allowedType }: { children: React.ReactNode; allowedType?: 'aluno' | 'instrutor' }) {
+  const { user, userType, isLoading } = useAuthNew();
+
+  if (isLoading) {
+    return <LoadingScreen />;
   }
 
-  if (allowedType && currentUser.tipo !== allowedType) {
-    return <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace />;
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (allowedType && userType !== allowedType) {
+    return <Navigate to={userType === 'instrutor' ? '/instrutor/home' : '/home'} replace />;
   }
 
   return <>{children}</>;
 }
 
 function AppRoutes() {
-  const { currentUser } = useAuth();
+  const { user, userType, isLoading } = useAuthNew();
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <Routes>
-      {/* Login */}
+      {/* Auth */}
       <Route 
         path="/" 
         element={
-          currentUser 
-            ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
-            : <LoginPage />
+          user 
+            ? <Navigate to={userType === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
+            : <Navigate to="/auth" replace />
         } 
       />
       <Route 
-        path="/login" 
+        path="/auth" 
         element={
-          currentUser 
-            ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
-            : <LoginPage />
-        } 
-      />
-      <Route 
-        path="/cadastro" 
-        element={
-          currentUser 
-            ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
-            : <CadastroPage />
+          user 
+            ? <Navigate to={userType === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
+            : <AuthPage />
         } 
       />
 
@@ -133,11 +144,11 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
+        <AuthProviderNew>
           <BusinessProvider>
             <AppRoutes />
           </BusinessProvider>
-        </AuthProvider>
+        </AuthProviderNew>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
