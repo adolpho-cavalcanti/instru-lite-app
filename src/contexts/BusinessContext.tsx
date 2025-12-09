@@ -1,137 +1,204 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { PacoteAulas, StatusPacote, OPCOES_PACOTE, TAXA_PLATAFORMA } from '@/types';
-import { useAuth } from './AuthContext';
+import { useAuthNew } from './AuthContextNew';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BusinessContextType {
   // Pacotes
   pacotes: PacoteAulas[];
-  criarPacote: (instrutorId: string, horas: number) => PacoteAulas | null;
-  confirmarPacote: (pacoteId: string) => void;
-  cancelarPacote: (pacoteId: string) => void;
-  registrarHorasRealizadas: (pacoteId: string, horas: number) => void;
+  criarPacote: (instrutorId: string, horas: number) => Promise<PacoteAulas | null>;
+  confirmarPacote: (pacoteId: string) => Promise<void>;
+  cancelarPacote: (pacoteId: string) => Promise<void>;
+  registrarHorasRealizadas: (pacoteId: string, horas: number) => Promise<void>;
   getPacotesAluno: () => PacoteAulas[];
   getPacotesInstrutor: () => PacoteAulas[];
   getPacoteById: (pacoteId: string) => PacoteAulas | undefined;
   
   // Avaliações
   podeAvaliar: (pacoteId: string) => boolean;
-  enviarAvaliacao: (pacoteId: string, nota: number, comentario: string) => void;
+  enviarAvaliacao: (pacoteId: string, nota: number, comentario: string) => Promise<void>;
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
-const PACOTES_KEY = 'instrutor_plus_pacotes';
-
 export function BusinessProvider({ children }: { children: ReactNode }) {
-  const auth = useAuth();
-  const { currentUser, instrutores, updateInstrutor } = auth || { currentUser: null, instrutores: [], updateInstrutor: () => {} };
+  const { user, userType, alunoData, instrutorData, instrutores } = useAuthNew();
   const [pacotes, setPacotes] = useState<PacoteAulas[]>([]);
 
-  // Load initial data
+  // Load pacotes from Supabase
   useEffect(() => {
-    const storedPacotes = localStorage.getItem(PACOTES_KEY);
-    if (storedPacotes) {
-      setPacotes(JSON.parse(storedPacotes));
-    }
-  }, []);
+    const loadPacotes = async () => {
+      if (!user) {
+        setPacotes([]);
+        return;
+      }
 
-  // Persist pacotes
-  const savePacotes = (newPacotes: PacoteAulas[]) => {
-    setPacotes(newPacotes);
-    localStorage.setItem(PACOTES_KEY, JSON.stringify(newPacotes));
-  };
+      const { data, error } = await supabase
+        .from('pacotes')
+        .select('*');
+
+      if (!error && data) {
+        const mappedPacotes: PacoteAulas[] = data.map(p => ({
+          id: p.id,
+          alunoId: p.aluno_id,
+          instrutorId: p.instrutor_id,
+          quantidadeHoras: p.quantidade_horas,
+          horasUtilizadas: p.horas_utilizadas,
+          precoTotal: p.preco_total,
+          taxaPlataforma: p.taxa_plataforma,
+          valorPlataforma: p.valor_plataforma,
+          status: p.status as StatusPacote,
+          dataCriacao: p.created_at,
+          dataConfirmacao: p.data_confirmacao || undefined,
+          dataConclusao: p.data_conclusao || undefined,
+          aulas: [],
+          avaliacaoLiberada: p.avaliacao_liberada,
+          avaliacaoRealizada: p.avaliacao_realizada,
+        }));
+        setPacotes(mappedPacotes);
+      }
+    };
+
+    loadPacotes();
+  }, [user]);
 
   // ========== PACOTES ==========
-  const criarPacote = (instrutorId: string, horas: number): PacoteAulas | null => {
-    if (!currentUser || currentUser.tipo !== 'aluno') return null;
+  const criarPacote = async (instrutorId: string, horas: number): Promise<PacoteAulas | null> => {
+    if (!user || userType !== 'aluno' || !alunoData) return null;
     
     const instrutor = instrutores.find(i => i.id === instrutorId);
     if (!instrutor) return null;
 
     const opcao = OPCOES_PACOTE.find(o => o.horas === horas);
     const desconto = opcao?.desconto || 0;
-    const precoBase = instrutor.precoHora * horas;
+    const precoBase = instrutor.preco_hora * horas;
     const precoComDesconto = precoBase * (1 - desconto / 100);
     
     // Taxa fixa de 10%
     const valorPlataforma = precoComDesconto * (TAXA_PLATAFORMA / 100);
 
+    const { data, error } = await supabase
+      .from('pacotes')
+      .insert({
+        aluno_id: alunoData.id,
+        instrutor_id: instrutorId,
+        quantidade_horas: horas,
+        horas_utilizadas: 0,
+        preco_total: precoComDesconto,
+        taxa_plataforma: TAXA_PLATAFORMA,
+        valor_plataforma: valorPlataforma,
+        status: 'pendente',
+      })
+      .select()
+      .single();
+
+    if (error || !data) return null;
+
     const novoPacote: PacoteAulas = {
-      id: `pacote-${Date.now()}`,
-      alunoId: currentUser.id,
-      instrutorId,
-      quantidadeHoras: horas,
-      horasUtilizadas: 0,
-      precoTotal: precoComDesconto,
-      taxaPlataforma: TAXA_PLATAFORMA,
-      valorPlataforma,
-      status: 'pendente',
-      dataCriacao: new Date().toISOString(),
+      id: data.id,
+      alunoId: data.aluno_id,
+      instrutorId: data.instrutor_id,
+      quantidadeHoras: data.quantidade_horas,
+      horasUtilizadas: data.horas_utilizadas,
+      precoTotal: data.preco_total,
+      taxaPlataforma: data.taxa_plataforma,
+      valorPlataforma: data.valor_plataforma,
+      status: data.status as StatusPacote,
+      dataCriacao: data.created_at,
       aulas: [],
-      avaliacaoLiberada: false,
-      avaliacaoRealizada: false,
+      avaliacaoLiberada: data.avaliacao_liberada,
+      avaliacaoRealizada: data.avaliacao_realizada,
     };
 
-    const newPacotes = [...pacotes, novoPacote];
-    savePacotes(newPacotes);
-
+    setPacotes(prev => [...prev, novoPacote]);
     return novoPacote;
   };
 
-  const confirmarPacote = (pacoteId: string) => {
-    const updated = pacotes.map(p => {
-      if (p.id === pacoteId && p.status === 'pendente') {
-        return {
-          ...p,
-          status: 'confirmado' as StatusPacote,
-          dataConfirmacao: new Date().toISOString(),
-        };
-      }
-      return p;
-    });
-    savePacotes(updated);
+  const confirmarPacote = async (pacoteId: string) => {
+    const { error } = await supabase
+      .from('pacotes')
+      .update({
+        status: 'confirmado',
+        data_confirmacao: new Date().toISOString(),
+      })
+      .eq('id', pacoteId)
+      .eq('status', 'pendente');
+
+    if (!error) {
+      setPacotes(prev => prev.map(p => {
+        if (p.id === pacoteId && p.status === 'pendente') {
+          return {
+            ...p,
+            status: 'confirmado' as StatusPacote,
+            dataConfirmacao: new Date().toISOString(),
+          };
+        }
+        return p;
+      }));
+    }
   };
 
-  const cancelarPacote = (pacoteId: string) => {
-    const updated = pacotes.map(p => {
-      if (p.id === pacoteId && ['pendente', 'confirmado'].includes(p.status)) {
-        return { ...p, status: 'cancelado' as StatusPacote };
-      }
-      return p;
-    });
-    savePacotes(updated);
+  const cancelarPacote = async (pacoteId: string) => {
+    const { error } = await supabase
+      .from('pacotes')
+      .update({ status: 'cancelado' })
+      .eq('id', pacoteId)
+      .in('status', ['pendente', 'confirmado']);
+
+    if (!error) {
+      setPacotes(prev => prev.map(p => {
+        if (p.id === pacoteId && ['pendente', 'confirmado'].includes(p.status)) {
+          return { ...p, status: 'cancelado' as StatusPacote };
+        }
+        return p;
+      }));
+    }
   };
 
   // Instrutor registra horas realizadas
-  const registrarHorasRealizadas = (pacoteId: string, horas: number) => {
-    if (!currentUser || currentUser.tipo !== 'instrutor') return;
+  const registrarHorasRealizadas = async (pacoteId: string, horas: number) => {
+    if (!user || userType !== 'instrutor' || !instrutorData) return;
 
-    const updated = pacotes.map(p => {
-      if (p.id === pacoteId && p.instrutorId === currentUser.id) {
-        const novasHorasUtilizadas = Math.min(p.horasUtilizadas + horas, p.quantidadeHoras);
-        const concluido = novasHorasUtilizadas >= p.quantidadeHoras;
+    const pacote = pacotes.find(p => p.id === pacoteId);
+    if (!pacote || pacote.instrutorId !== instrutorData.id) return;
 
-        return {
-          ...p,
-          horasUtilizadas: novasHorasUtilizadas,
-          status: concluido ? 'concluido' as StatusPacote : 'em_andamento' as StatusPacote,
-          dataConclusao: concluido ? new Date().toISOString() : undefined,
-          avaliacaoLiberada: concluido,
-        };
-      }
-      return p;
-    });
-    savePacotes(updated);
+    const novasHorasUtilizadas = Math.min(pacote.horasUtilizadas + horas, pacote.quantidadeHoras);
+    const concluido = novasHorasUtilizadas >= pacote.quantidadeHoras;
+
+    const { error } = await supabase
+      .from('pacotes')
+      .update({
+        horas_utilizadas: novasHorasUtilizadas,
+        status: concluido ? 'concluido' : 'em_andamento',
+        data_conclusao: concluido ? new Date().toISOString() : null,
+        avaliacao_liberada: concluido,
+      })
+      .eq('id', pacoteId);
+
+    if (!error) {
+      setPacotes(prev => prev.map(p => {
+        if (p.id === pacoteId) {
+          return {
+            ...p,
+            horasUtilizadas: novasHorasUtilizadas,
+            status: concluido ? 'concluido' as StatusPacote : 'em_andamento' as StatusPacote,
+            dataConclusao: concluido ? new Date().toISOString() : undefined,
+            avaliacaoLiberada: concluido,
+          };
+        }
+        return p;
+      }));
+    }
   };
 
   const getPacotesAluno = () => {
-    if (!currentUser || currentUser.tipo !== 'aluno') return [];
-    return pacotes.filter(p => p.alunoId === currentUser.id);
+    if (!user || userType !== 'aluno' || !alunoData) return [];
+    return pacotes.filter(p => p.alunoId === alunoData.id);
   };
 
   const getPacotesInstrutor = () => {
-    if (!currentUser || currentUser.tipo !== 'instrutor') return [];
-    return pacotes.filter(p => p.instrutorId === currentUser.id);
+    if (!user || userType !== 'instrutor' || !instrutorData) return [];
+    return pacotes.filter(p => p.instrutorId === instrutorData.id);
   };
 
   const getPacoteById = (pacoteId: string) => {
@@ -145,44 +212,37 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     return pacote.avaliacaoLiberada && !pacote.avaliacaoRealizada;
   };
 
-  const enviarAvaliacao = (pacoteId: string, nota: number, comentario: string) => {
-    if (!currentUser || currentUser.tipo !== 'aluno') return;
+  const enviarAvaliacao = async (pacoteId: string, nota: number, comentario: string) => {
+    if (!user || userType !== 'aluno' || !alunoData) return;
     
     const pacote = pacotes.find(p => p.id === pacoteId);
     if (!pacote || !podeAvaliar(pacoteId)) return;
 
-    const instrutor = instrutores.find(i => i.id === pacote.instrutorId);
-    if (!instrutor) return;
+    // Create avaliacao in database
+    const { error: avaliacaoError } = await supabase
+      .from('avaliacoes')
+      .insert({
+        aluno_id: alunoData.id,
+        instrutor_id: pacote.instrutorId,
+        pacote_id: pacoteId,
+        nota,
+        comentario,
+      });
 
-    // Criar avaliação
-    const novaAvaliacao = {
-      id: `av-${Date.now()}`,
-      autor: (currentUser.data as { nome: string }).nome,
-      alunoId: currentUser.id,
-      nota,
-      comentario,
-      data: new Date().toISOString().split('T')[0],
-      pacoteId,
-    };
+    if (avaliacaoError) return;
 
-    // Atualizar instrutor com nova avaliação
-    const novasAvaliacoes = [...instrutor.avaliacoes, novaAvaliacao];
-    const novaMedia = novasAvaliacoes.reduce((acc, av) => acc + av.nota, 0) / novasAvaliacoes.length;
+    // Mark pacote as evaluated
+    await supabase
+      .from('pacotes')
+      .update({ avaliacao_realizada: true })
+      .eq('id', pacoteId);
 
-    updateInstrutor({
-      ...instrutor,
-      avaliacoes: novasAvaliacoes,
-      avaliacaoMedia: Math.round(novaMedia * 10) / 10,
-    });
-
-    // Marcar pacote como avaliado
-    const updatedPacotes = pacotes.map(p => {
+    setPacotes(prev => prev.map(p => {
       if (p.id === pacoteId) {
         return { ...p, avaliacaoRealizada: true };
       }
       return p;
-    });
-    savePacotes(updatedPacotes);
+    }));
   };
 
   return (
