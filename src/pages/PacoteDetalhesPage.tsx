@@ -29,8 +29,8 @@ export default function PacoteDetalhesPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser, instrutores, alunos } = useAuth();
-  const { pacote, loading: pacoteLoading, confirmarPacote, cancelarPacote, podeAvaliar } = usePacote(id);
-  const { aulas, loading: aulasLoading, proporAula, confirmarAula, marcarRealizada, cancelarAula } = useAulas(id);
+  const { pacote, loading: pacoteLoading, confirmarPacote, cancelarPacote, podeAvaliar, refetch: refetchPacote } = usePacote(id);
+  const { aulas, loading: aulasLoading, proporAula, confirmarAula, marcarRealizada, cancelarAula } = useAulas(id, refetchPacote);
 
   const [showProporModal, setShowProporModal] = useState(false);
 
