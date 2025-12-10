@@ -101,9 +101,10 @@ export function useAulas(pacoteId?: string) {
       if (error) throw error;
 
       await fetchAulas();
+      const aguardando = currentUser.tipo === 'instrutor' ? 'aluno' : 'instrutor';
       toast({
         title: 'Aula Proposta',
-        description: 'Aguardando confirmação do instrutor.',
+        description: `Aguardando confirmação do ${aguardando}.`,
       });
 
       return mapAulaFromDB(newAula);

@@ -57,7 +57,11 @@ export function AulaCard({
   const formattedDate = format(new Date(aula.data), "EEEE, dd 'de' MMMM", { locale: ptBR });
   const isProposta = aula.status === 'proposta';
   const isConfirmada = aula.status === 'confirmada';
-  const canConfirm = isProposta && isInstrutor && aula.propostaPor === 'aluno';
+  // A pessoa oposta à que propôs pode confirmar
+  const canConfirm = isProposta && (
+    (isInstrutor && aula.propostaPor === 'aluno') ||
+    (!isInstrutor && aula.propostaPor === 'instrutor')
+  );
   const canMarkDone = isConfirmada && isInstrutor;
 
   return (
