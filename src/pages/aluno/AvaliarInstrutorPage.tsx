@@ -9,6 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { Star, Check } from 'lucide-react';
+import { z } from 'zod';
+
+const reviewSchema = z.object({
+  nota: z.number().min(1, 'Selecione uma nota').max(5),
+  comentario: z.string()
+    .min(10, 'Comentário deve ter pelo menos 10 caracteres')
+    .max(1000, 'Comentário deve ter no máximo 1000 caracteres')
+});
 
 export default function AvaliarInstrutorPage() {
   const { pacoteId } = useParams();
@@ -20,6 +28,7 @@ export default function AvaliarInstrutorPage() {
   const [hoverNota, setHoverNota] = useState(0);
   const [comentario, setComentario] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const pacote = pacoteId ? getPacoteById(pacoteId) : undefined;
   const instrutor = pacote ? instrutores.find(i => i.id === pacote.instrutorId) : undefined;
@@ -54,16 +63,16 @@ export default function AvaliarInstrutorPage() {
   }
 
   const handleSubmit = async () => {
-    if (nota === 0) {
-      toast.error('Selecione uma nota');
+    const result = reviewSchema.safeParse({ nota, comentario: comentario.trim() });
+    
+    if (!result.success) {
+      const firstError = result.error.errors[0]?.message || 'Dados inválidos';
+      setError(firstError);
+      toast.error(firstError);
       return;
     }
 
-    if (comentario.trim().length < 10) {
-      toast.error('Escreva um comentário com pelo menos 10 caracteres');
-      return;
-    }
-
+    setError('');
     setLoading(true);
     
     // Simular processamento
@@ -141,14 +150,24 @@ export default function AvaliarInstrutorPage() {
           </label>
           <Textarea
             value={comentario}
-            onChange={(e) => setComentario(e.target.value)}
+            onChange={(e) => {
+              if (e.target.value.length <= 1000) {
+                setComentario(e.target.value);
+                setError('');
+              }
+            }}
             placeholder="Escreva aqui sua avaliação sobre o instrutor, as aulas, o veículo, a didática..."
             rows={5}
-            className="resize-none"
+            maxLength={1000}
+            className={`resize-none ${error ? 'border-destructive' : ''}`}
           />
-          <p className="text-xs text-muted-foreground mt-1">
-            Mínimo de 10 caracteres
-          </p>
+          <div className="flex justify-between mt-1">
+            <p className="text-xs text-muted-foreground">
+              Mínimo de 10 caracteres
+            </p>
+            <p className="text-xs text-muted-foreground">{comentario.length}/1000</p>
+          </div>
+          {error && <p className="text-xs text-destructive mt-1">{error}</p>}
         </div>
 
         {/* Aviso */}

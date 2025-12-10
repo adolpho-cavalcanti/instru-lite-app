@@ -6,12 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Check, X } from 'lucide-react';
 import { Instrutor } from '@/types';
 import { toast } from 'sonner';
+import { z } from 'zod';
+
+const profileSchema = z.object({
+  bio: z.string().max(500, 'Bio deve ter no máximo 500 caracteres').optional(),
+  precoHora: z.number().min(0, 'Preço não pode ser negativo').max(1000, 'Preço máximo é R$1000'),
+  bairrosAtendimento: z.string().max(500, 'Texto muito longo')
+});
 
 export default function InstrutorPerfilPage() {
   const { currentUser, updateInstrutor } = useAuth();
   const instrutor = currentUser?.data as Instrutor;
 
   const [editing, setEditing] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     bio: instrutor?.bio || '',
     precoHora: instrutor?.precoHora || 0,
@@ -21,10 +29,27 @@ export default function InstrutorPerfilPage() {
   if (!instrutor) return null;
 
   const handleSave = () => {
+    const result = profileSchema.safeParse(formData);
+    
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach(err => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      toast.error('Corrija os erros no formulário');
+      return;
+    }
+
+    setErrors({});
+    
     const bairrosArray = formData.bairrosAtendimento
       .split(',')
       .map(b => b.trim())
-      .filter(b => b.length > 0);
+      .filter(b => b.length > 0)
+      .slice(0, 20); // Limit to 20 neighborhoods
 
     const updatedInstrutor: Instrutor = {
       ...instrutor,
@@ -44,6 +69,7 @@ export default function InstrutorPerfilPage() {
       precoHora: instrutor.precoHora,
       bairrosAtendimento: instrutor.bairrosAtendimento.join(', ')
     });
+    setErrors({});
     setEditing(false);
   };
 
@@ -71,12 +97,17 @@ export default function InstrutorPerfilPage() {
               Valor por hora (R$)
             </label>
             {editing ? (
-              <input
-                type="number"
-                value={formData.precoHora}
-                onChange={(e) => setFormData({ ...formData, precoHora: Number(e.target.value) })}
-                className="w-full h-11 px-3 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
+              <div>
+                <input
+                  type="number"
+                  min="0"
+                  max="1000"
+                  value={formData.precoHora}
+                  onChange={(e) => setFormData({ ...formData, precoHora: Number(e.target.value) })}
+                  className={`w-full h-11 px-3 bg-background border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 ${errors.precoHora ? 'border-destructive' : 'border-border'}`}
+                />
+                {errors.precoHora && <p className="text-xs text-destructive mt-1">{errors.precoHora}</p>}
+              </div>
             ) : (
               <p className="text-lg font-semibold text-foreground">R${instrutor.precoHora}</p>
             )}
@@ -88,13 +119,17 @@ export default function InstrutorPerfilPage() {
               Bairros de atendimento
             </label>
             {editing ? (
-              <input
-                type="text"
-                value={formData.bairrosAtendimento}
-                onChange={(e) => setFormData({ ...formData, bairrosAtendimento: e.target.value })}
-                placeholder="Separe por vírgulas"
-                className="w-full h-11 px-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
+              <div>
+                <input
+                  type="text"
+                  maxLength={500}
+                  value={formData.bairrosAtendimento}
+                  onChange={(e) => setFormData({ ...formData, bairrosAtendimento: e.target.value })}
+                  placeholder="Separe por vírgulas (máx. 20 bairros)"
+                  className={`w-full h-11 px-3 bg-background border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 ${errors.bairrosAtendimento ? 'border-destructive' : 'border-border'}`}
+                />
+                {errors.bairrosAtendimento && <p className="text-xs text-destructive mt-1">{errors.bairrosAtendimento}</p>}
+              </div>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {instrutor.bairrosAtendimento.map(bairro => (
@@ -115,12 +150,24 @@ export default function InstrutorPerfilPage() {
               Sua bio
             </label>
             {editing ? (
-              <textarea
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                rows={4}
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-              />
+              <div>
+                <textarea
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  maxLength={500}
+                  rows={4}
+                  placeholder="Conte um pouco sobre você e sua experiência..."
+                  className={`w-full px-3 py-2 bg-background border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none ${errors.bio ? 'border-destructive' : 'border-border'}`}
+                />
+                <div className="flex justify-between mt-1">
+                  {errors.bio ? (
+                    <p className="text-xs text-destructive">{errors.bio}</p>
+                  ) : (
+                    <span />
+                  )}
+                  <p className="text-xs text-muted-foreground">{formData.bio.length}/500</p>
+                </div>
+              </div>
             ) : (
               <p className="text-muted-foreground leading-relaxed">{instrutor.bio}</p>
             )}
