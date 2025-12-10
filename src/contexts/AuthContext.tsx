@@ -8,6 +8,15 @@ type Profile = Database['public']['Tables']['profiles']['Row'];
 type DbInstrutor = Database['public']['Tables']['instrutores']['Row'];
 type DbAluno = Database['public']['Tables']['alunos']['Row'];
 
+// Instructor data for signup/profile completion
+export interface InstrutorSignupData {
+  categoria: 'A' | 'B' | 'AB' | 'C' | 'D' | 'E';
+  precoHora: number;
+  credenciamentoDetran: string;
+  temVeiculo: boolean;
+  anosExperiencia: number;
+}
+
 interface AuthContextType {
   // Supabase auth state
   user: User | null;
@@ -20,7 +29,7 @@ interface AuthContextType {
   alunos: Aluno[];
   
   // Auth methods
-  signUp: (email: string, password: string, tipo: UserType, nome: string, cidade: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, tipo: UserType, nome: string, cidade: string, instrutorData?: InstrutorSignupData) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -28,7 +37,7 @@ interface AuthContextType {
   
   // Profile completion (for OAuth users)
   needsProfileCompletion: boolean;
-  completeProfile: (tipo: UserType, nome: string, cidade: string) => Promise<{ error: Error | null }>;
+  completeProfile: (tipo: UserType, nome: string, cidade: string, instrutorData?: InstrutorSignupData) => Promise<{ error: Error | null }>;
   
   // Legacy methods
   updateInstrutor: (instrutor: Instrutor) => void;
@@ -257,7 +266,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string, 
     tipo: UserType, 
     nome: string, 
-    cidade: string
+    cidade: string,
+    instrutorData?: InstrutorSignupData
   ): Promise<{ error: Error | null }> => {
     try {
       const redirectUrl = `${window.location.origin}/`;
@@ -292,7 +302,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Create role-specific record
-        if (tipo === 'instrutor') {
+        if (tipo === 'instrutor' && instrutorData) {
+          const { error: instrutorError } = await supabase
+            .from('instrutores')
+            .insert({
+              profile_id: profile.id,
+              categoria: instrutorData.categoria,
+              preco_hora: instrutorData.precoHora,
+              credenciamento_detran: instrutorData.credenciamentoDetran,
+              tem_veiculo: instrutorData.temVeiculo,
+              anos_experiencia: instrutorData.anosExperiencia,
+            });
+          
+          if (instrutorError) {
+            return { error: new Error(instrutorError.message) };
+          }
+        } else if (tipo === 'instrutor') {
+          // Fallback for instrutor without data (shouldn't happen)
           const { error: instrutorError } = await supabase
             .from('instrutores')
             .insert({
@@ -365,10 +391,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Complete profile for OAuth users
+  // Complete profile for OAuth users
   const completeProfile = async (
     tipo: UserType,
     nome: string,
-    cidade: string
+    cidade: string,
+    instrutorData?: InstrutorSignupData
   ): Promise<{ error: Error | null }> => {
     if (!user) {
       return { error: new Error('User not authenticated') };
@@ -393,7 +421,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Create role-specific record
-      if (tipo === 'instrutor') {
+      if (tipo === 'instrutor' && instrutorData) {
+        const { error: instrutorError } = await supabase
+          .from('instrutores')
+          .insert({
+            profile_id: profile.id,
+            categoria: instrutorData.categoria,
+            preco_hora: instrutorData.precoHora,
+            credenciamento_detran: instrutorData.credenciamentoDetran,
+            tem_veiculo: instrutorData.temVeiculo,
+            anos_experiencia: instrutorData.anosExperiencia,
+          });
+
+        if (instrutorError) {
+          return { error: new Error(instrutorError.message) };
+        }
+      } else if (tipo === 'instrutor') {
+        // Fallback
         const { error: instrutorError } = await supabase
           .from('instrutores')
           .insert({
