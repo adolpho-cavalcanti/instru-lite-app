@@ -13,7 +13,7 @@ export interface Instrutor {
   nome: string;
   foto: string;
   credenciamentoDetran: string;
-  categoria: string;
+  categorias: string[]; // Múltiplas categorias (A, B, C, D, E)
   anosExperiencia: number;
   precoHora: number;
   cidade: string;
@@ -44,13 +44,16 @@ export interface CurrentUser {
 // Sistema de Pacotes de Aulas
 export type StatusPacote = 'pendente' | 'confirmado' | 'em_andamento' | 'concluido' | 'cancelado';
 
+export type StatusAula = 'proposta' | 'confirmada' | 'realizada' | 'cancelada';
+
 export interface Aula {
   id: string;
   data: string;
   horario: string;
   duracao: number; // em horas
-  status: 'agendada' | 'realizada' | 'cancelada';
+  status: StatusAula;
   observacoes?: string;
+  propostaPor: 'aluno' | 'instrutor'; // Quem propôs a aula
 }
 
 export interface PacoteAulas {

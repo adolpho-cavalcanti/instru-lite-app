@@ -22,8 +22,13 @@ export const localDatabaseProvider: DatabaseProvider = {
   // Instrutores
   getInstrutores: async (): Promise<QueryResult<Instrutor[]>> => {
     try {
-      const stored = getStoredData<Instrutor[]>(INSTRUTORES_KEY, usersData.instrutores as Instrutor[]);
-      return { data: stored };
+      const stored = getStoredData<any[]>(INSTRUTORES_KEY, usersData.instrutores as any[]);
+      // Convert old 'categoria' to 'categorias' array if needed
+      const normalized = stored.map((inst: any) => ({
+        ...inst,
+        categorias: inst.categorias || (inst.categoria ? [inst.categoria] : ['B']),
+      }));
+      return { data: normalized as Instrutor[] };
     } catch (error) {
       return { data: null, error: 'Erro ao carregar instrutores' };
     }
@@ -31,9 +36,14 @@ export const localDatabaseProvider: DatabaseProvider = {
 
   getInstrutorById: async (id: string): Promise<QueryResult<Instrutor>> => {
     try {
-      const instrutores = getStoredData<Instrutor[]>(INSTRUTORES_KEY, usersData.instrutores as Instrutor[]);
-      const instrutor = instrutores.find(i => i.id === id);
-      return { data: instrutor || null };
+      const instrutores = getStoredData<any[]>(INSTRUTORES_KEY, usersData.instrutores as any[]);
+      const inst = instrutores.find(i => i.id === id);
+      if (!inst) return { data: null };
+      const instrutor = {
+        ...inst,
+        categorias: inst.categorias || (inst.categoria ? [inst.categoria] : ['B']),
+      };
+      return { data: instrutor as Instrutor };
     } catch (error) {
       return { data: null, error: 'Erro ao carregar instrutor' };
     }
@@ -41,14 +51,18 @@ export const localDatabaseProvider: DatabaseProvider = {
 
   updateInstrutor: async (id: string, data: Partial<Instrutor>): Promise<QueryResult<Instrutor>> => {
     try {
-      const instrutores = getStoredData<Instrutor[]>(INSTRUTORES_KEY, usersData.instrutores as Instrutor[]);
+      const instrutores = getStoredData<any[]>(INSTRUTORES_KEY, usersData.instrutores as any[]);
       const index = instrutores.findIndex(i => i.id === id);
       if (index === -1) {
         return { data: null, error: 'Instrutor não encontrado' };
       }
-      instrutores[index] = { ...instrutores[index], ...data };
+      const normalized = {
+        ...instrutores[index],
+        categorias: instrutores[index].categorias || (instrutores[index].categoria ? [instrutores[index].categoria] : ['B']),
+      };
+      instrutores[index] = { ...normalized, ...data };
       setStoredData(INSTRUTORES_KEY, instrutores);
-      return { data: instrutores[index] };
+      return { data: instrutores[index] as Instrutor };
     } catch (error) {
       return { data: null, error: 'Erro ao atualizar instrutor' };
     }
@@ -56,11 +70,11 @@ export const localDatabaseProvider: DatabaseProvider = {
 
   createInstrutor: async (data: Instrutor): Promise<QueryResult<Instrutor>> => {
     try {
-      const instrutores = getStoredData<Instrutor[]>(INSTRUTORES_KEY, usersData.instrutores as Instrutor[]);
-      const newInstrutor = { ...data, id: `inst-${Date.now()}` };
+      const instrutores = getStoredData<any[]>(INSTRUTORES_KEY, usersData.instrutores as any[]);
+      const newInstrutor = { ...data, id: `inst-${Date.now()}`, categorias: data.categorias || ['B'] };
       instrutores.push(newInstrutor);
       setStoredData(INSTRUTORES_KEY, instrutores);
-      return { data: newInstrutor };
+      return { data: newInstrutor as Instrutor };
     } catch (error) {
       return { data: null, error: 'Erro ao criar instrutor' };
     }

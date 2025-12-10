@@ -48,7 +48,7 @@ export default function AuthPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   // Instructor-specific fields
-  const [categoria, setCategoria] = useState<CategoriaHabilitacao>('B');
+  const [categorias, setCategorias] = useState<string[]>(['B']);
   const [precoHora, setPrecoHora] = useState(80);
   const [credenciamentoDetran, setCredenciamentoDetran] = useState('');
   const [temVeiculo, setTemVeiculo] = useState(false);
@@ -138,7 +138,7 @@ export default function AuthPage() {
       if (needsProfileCompletion) {
         // Complete profile for OAuth users
         const instrutorData = userType === 'instrutor' ? {
-          categoria,
+          categorias,
           precoHora,
           credenciamentoDetran,
           temVeiculo,
@@ -166,7 +166,7 @@ export default function AuthPage() {
         toast.success('Login realizado com sucesso!');
       } else {
         const instrutorData = userType === 'instrutor' ? {
-          categoria,
+          categorias,
           precoHora,
           credenciamentoDetran,
           temVeiculo,
@@ -316,28 +316,42 @@ export default function AuthPage() {
                   Informações profissionais
                 </h3>
                 <div className="space-y-4">
-                  {/* Categoria */}
+                  {/* Categorias - Múltipla seleção */}
                   <div>
                     <Label className="text-sm font-medium mb-2 block">
-                      Categoria da habilitação
+                      Categorias da habilitação (selecione uma ou mais)
                     </Label>
                     <div className="flex flex-wrap gap-2">
-                      {CATEGORIAS_HABILITACAO.map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setCategoria(cat)}
-                          className={cn(
-                            "px-4 py-2 rounded-lg border-2 font-medium transition-all",
-                            categoria === cat
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border bg-card text-foreground hover:border-primary/50"
-                          )}
-                        >
-                          {cat}
-                        </button>
-                      ))}
+                      {CATEGORIAS_HABILITACAO.map((cat) => {
+                        const isSelected = categorias.includes(cat);
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                if (categorias.length > 1) {
+                                  setCategorias(categorias.filter(c => c !== cat));
+                                }
+                              } else {
+                                setCategorias([...categorias, cat]);
+                              }
+                            }}
+                            className={cn(
+                              "px-4 py-2 rounded-lg border-2 font-medium transition-all",
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-card text-foreground hover:border-primary/50"
+                            )}
+                          >
+                            {cat}
+                          </button>
+                        );
+                      })}
                     </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Clique para selecionar/deselecionar
+                    </p>
                   </div>
 
                   {/* Credenciamento DETRAN */}
@@ -599,29 +613,43 @@ export default function AuthPage() {
                     Informações profissionais
                   </h3>
                   <div className="space-y-4">
-                    {/* Categoria */}
-                    <div>
-                      <Label className="text-sm font-medium mb-2 block">
-                        Categoria da habilitação
-                      </Label>
-                      <div className="flex flex-wrap gap-2">
-                        {CATEGORIAS_HABILITACAO.map((cat) => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => setCategoria(cat)}
-                            className={cn(
-                              "px-4 py-2 rounded-lg border-2 font-medium transition-all",
-                              categoria === cat
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-card text-foreground hover:border-primary/50"
-                            )}
-                          >
-                            {cat}
-                          </button>
-                        ))}
+                      {/* Categorias - Múltipla seleção */}
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">
+                          Categorias da habilitação (selecione uma ou mais)
+                        </Label>
+                        <div className="flex flex-wrap gap-2">
+                          {CATEGORIAS_HABILITACAO.map((cat) => {
+                            const isSelected = categorias.includes(cat);
+                            return (
+                              <button
+                                key={cat}
+                                type="button"
+                                onClick={() => {
+                                  if (isSelected) {
+                                    if (categorias.length > 1) {
+                                      setCategorias(categorias.filter(c => c !== cat));
+                                    }
+                                  } else {
+                                    setCategorias([...categorias, cat]);
+                                  }
+                                }}
+                                className={cn(
+                                  "px-4 py-2 rounded-lg border-2 font-medium transition-all",
+                                  isSelected
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-border bg-card text-foreground hover:border-primary/50"
+                                )}
+                              >
+                                {cat}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Clique para selecionar/deselecionar
+                        </p>
                       </div>
-                    </div>
 
                     {/* Credenciamento DETRAN */}
                     <div>

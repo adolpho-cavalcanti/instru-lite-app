@@ -85,7 +85,7 @@ export function InstrutorCard({ instrutor, className }: InstrutorCardProps) {
           <div className="flex items-center justify-between gap-3 mt-3">
             <div className="flex items-center gap-3">
               <span className="inline-flex items-center px-2 py-1 bg-accent rounded-md text-xs font-medium text-accent-foreground">
-                Cat. {instrutor.categoria}
+                Cat. {instrutor.categorias?.join('/') || 'B'}
               </span>
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="w-3.5 h-3.5" />
