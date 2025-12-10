@@ -1,212 +1,429 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CurrentUser, Instrutor, Aluno, UserType } from '@/types';
-import usersData from '@/data/users.json';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+import { Instrutor, Aluno, CurrentUser, UserType } from '@/types';
 
-interface RegisterAlunoData {
-  nome: string;
-  foto: string;
-  cidade: string;
-}
-
-interface RegisterInstrutorData {
-  nome: string;
-  foto: string;
-  cidade: string;
-  credenciamentoDetran: string;
-  categoria: string;
-  anosExperiencia: number;
-  precoHora: number;
-  bairrosAtendimento: string[];
-  temVeiculo: boolean;
-  bio: string;
-}
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type DbInstrutor = Database['public']['Tables']['instrutores']['Row'];
+type DbAluno = Database['public']['Tables']['alunos']['Row'];
 
 interface AuthContextType {
+  // Supabase auth state
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  
+  // Legacy compatibility
   currentUser: CurrentUser | null;
-  login: (userId: string, tipo: UserType) => void;
-  logout: () => void;
   instrutores: Instrutor[];
   alunos: Aluno[];
+  
+  // Auth methods
+  signUp: (email: string, password: string, tipo: UserType, nome: string, cidade: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
+  logout: () => Promise<void>; // Alias for signOut
+  
+  // Legacy methods
   updateInstrutor: (instrutor: Instrutor) => void;
   toggleFavorito: (instrutorId: string) => void;
   isFavorito: (instrutorId: string) => boolean;
-  registerAluno: (data: RegisterAlunoData) => void;
-  registerInstrutor: (data: RegisterInstrutorData) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'instrutor_plus_user';
-const FAVORITES_KEY = 'instrutor_plus_favorites';
-const INSTRUTORES_KEY = 'instrutor_plus_instrutores';
-const ALUNOS_KEY = 'instrutor_plus_alunos';
+// Convert DB instructor to legacy format
+function toInstrutor(dbInstrutor: DbInstrutor, profile: Profile, avaliacoes: any[] = []): Instrutor {
+  return {
+    id: dbInstrutor.id,
+    nome: profile.nome,
+    foto: profile.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    cidade: profile.cidade,
+    credenciamentoDetran: dbInstrutor.credenciamento_detran,
+    categoria: dbInstrutor.categoria,
+    anosExperiencia: dbInstrutor.anos_experiencia,
+    precoHora: Number(dbInstrutor.preco_hora),
+    bairrosAtendimento: dbInstrutor.bairros_atendimento || [],
+    temVeiculo: dbInstrutor.tem_veiculo,
+    bio: dbInstrutor.bio || '',
+    avaliacaoMedia: Number(dbInstrutor.avaliacao_media) || 5.0,
+    avaliacoes,
+    rankingPosicao: dbInstrutor.ranking_posicao || undefined,
+  };
+}
+
+// Convert DB aluno to legacy format
+function toAluno(dbAluno: DbAluno, profile: Profile, favoritos: string[] = []): Aluno {
+  return {
+    id: dbAluno.id,
+    nome: profile.nome,
+    foto: profile.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    cidade: profile.cidade,
+    favoritos,
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const [instrutores, setInstrutores] = useState<Instrutor[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [userFavoritos, setUserFavoritos] = useState<string[]>([]);
+
+  // Fetch all instructors
+  const fetchInstrutores = async () => {
+    try {
+      const { data: dbInstrutores, error } = await supabase
+        .from('instrutores')
+        .select(`
+          *,
+          profiles!instrutores_profile_id_fkey (*)
+        `);
+
+      if (error) {
+        console.error('Error fetching instrutores:', error);
+        return;
+      }
+
+      if (dbInstrutores) {
+        const mapped = dbInstrutores.map((inst: any) => 
+          toInstrutor(inst, inst.profiles, [])
+        );
+        setInstrutores(mapped);
+      }
+    } catch (err) {
+      console.error('Error fetching instrutores:', err);
+    }
+  };
+
+  // Fetch all students (for instructor view)
+  const fetchAlunos = async () => {
+    try {
+      const { data: dbAlunos, error } = await supabase
+        .from('alunos')
+        .select(`
+          *,
+          profiles!alunos_profile_id_fkey (*)
+        `);
+
+      if (error) {
+        console.error('Error fetching alunos:', error);
+        return;
+      }
+
+      if (dbAlunos) {
+        const mapped = dbAlunos.map((al: any) => 
+          toAluno(al, al.profiles, [])
+        );
+        setAlunos(mapped);
+      }
+    } catch (err) {
+      console.error('Error fetching alunos:', err);
+    }
+  };
+
+  // Fetch user's favorites
+  const fetchFavoritos = async (alunoId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('favoritos')
+        .select('instrutor_id')
+        .eq('aluno_id', alunoId);
+
+      if (error) {
+        console.error('Error fetching favoritos:', error);
+        return [];
+      }
+
+      return data?.map(f => f.instrutor_id) || [];
+    } catch (err) {
+      console.error('Error fetching favoritos:', err);
+      return [];
+    }
+  };
+
+  // Fetch user profile and role-specific data
+  const fetchUserData = async (userId: string) => {
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        console.error('Error fetching profile:', profileError);
+        return null;
+      }
+
+      if (profile.tipo === 'instrutor') {
+        const { data: instrutor } = await supabase
+          .from('instrutores')
+          .select('*')
+          .eq('profile_id', profile.id)
+          .single();
+
+        if (instrutor) {
+          const legacyInstrutor = toInstrutor(instrutor, profile, []);
+          return {
+            id: instrutor.id,
+            tipo: 'instrutor' as UserType,
+            data: legacyInstrutor,
+          };
+        }
+      } else if (profile.tipo === 'aluno') {
+        const { data: aluno } = await supabase
+          .from('alunos')
+          .select('*')
+          .eq('profile_id', profile.id)
+          .single();
+
+        if (aluno) {
+          const favs = await fetchFavoritos(aluno.id);
+          setUserFavoritos(favs);
+          const legacyAluno = toAluno(aluno, profile, favs);
+          return {
+            id: aluno.id,
+            tipo: 'aluno' as UserType,
+            data: legacyAluno,
+          };
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
+    }
+  };
 
   // Load initial data
   useEffect(() => {
-    // Load instrutores from localStorage or JSON
-    const storedInstrutores = localStorage.getItem(INSTRUTORES_KEY);
-    const jsonInstrutores = usersData.instrutores as Instrutor[];
-    
-    if (storedInstrutores) {
-      const parsed = JSON.parse(storedInstrutores) as Instrutor[];
-      // Add any new instructors from JSON that aren't in localStorage
-      const newFromJson = jsonInstrutores.filter(j => !parsed.find(m => m.id === j.id));
-      setInstrutores([...parsed, ...newFromJson]);
-      localStorage.setItem(INSTRUTORES_KEY, JSON.stringify([...parsed, ...newFromJson]));
-    } else {
-      setInstrutores(jsonInstrutores);
-    }
-
-    // Load alunos from localStorage or JSON
-    const storedAlunos = localStorage.getItem(ALUNOS_KEY);
-    if (storedAlunos) {
-      setAlunos(JSON.parse(storedAlunos));
-    } else {
-      setAlunos(usersData.alunos as Aluno[]);
-    }
-
-    // Load stored user
-    const storedUser = localStorage.getItem(STORAGE_KEY);
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser);
-      setCurrentUser(parsed);
-    }
-
-    // Load favorites
-    const storedFavorites = localStorage.getItem(FAVORITES_KEY);
-    if (storedFavorites) {
-      setFavorites(JSON.parse(storedFavorites));
-    }
+    fetchInstrutores();
+    fetchAlunos();
   }, []);
 
-  const login = (userId: string, tipo: UserType) => {
-    let userData: Instrutor | Aluno | undefined;
-    
-    if (tipo === 'instrutor') {
-      userData = instrutores.find(i => i.id === userId);
-    } else {
-      userData = alunos.find(a => a.id === userId);
-    }
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
 
-    if (userData) {
-      const user: CurrentUser = {
-        id: userId,
-        tipo,
-        data: userData
-      };
-      setCurrentUser(user);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    }
-  };
-
-  const logout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem(STORAGE_KEY);
-  };
-
-  const updateInstrutor = (instrutor: Instrutor) => {
-    const updated = instrutores.map(i => 
-      i.id === instrutor.id ? instrutor : i
+        // Defer fetching user data to avoid deadlock
+        if (session?.user) {
+          setTimeout(() => {
+            fetchUserData(session.user.id).then(setCurrentUser);
+          }, 0);
+        } else {
+          setCurrentUser(null);
+          setUserFavoritos([]);
+        }
+      }
     );
-    setInstrutores(updated);
-    localStorage.setItem(INSTRUTORES_KEY, JSON.stringify(updated));
 
-    // Update current user if it's the same instrutor
-    if (currentUser?.id === instrutor.id) {
-      const updatedUser: CurrentUser = {
-        ...currentUser,
-        data: instrutor
-      };
-      setCurrentUser(updatedUser);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserData(session.user.id).then((userData) => {
+          setCurrentUser(userData);
+          setLoading(false);
+        });
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signUp = async (
+    email: string, 
+    password: string, 
+    tipo: UserType, 
+    nome: string, 
+    cidade: string
+  ): Promise<{ error: Error | null }> => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+        }
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      if (data.user) {
+        // Create profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: data.user.id,
+            nome,
+            cidade,
+            tipo,
+          })
+          .select()
+          .single();
+
+        if (profileError) {
+          return { error: new Error(profileError.message) };
+        }
+
+        // Create role-specific record
+        if (tipo === 'instrutor') {
+          const { error: instrutorError } = await supabase
+            .from('instrutores')
+            .insert({
+              profile_id: profile.id,
+              categoria: 'B',
+              preco_hora: 80,
+              credenciamento_detran: '',
+            });
+          
+          if (instrutorError) {
+            return { error: new Error(instrutorError.message) };
+          }
+        } else {
+          const { error: alunoError } = await supabase
+            .from('alunos')
+            .insert({
+              profile_id: profile.id,
+            });
+          
+          if (alunoError) {
+            return { error: new Error(alunoError.message) };
+          }
+        }
+
+        // Refetch data
+        await fetchInstrutores();
+        await fetchAlunos();
+      }
+
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
     }
   };
 
-  const toggleFavorito = (instrutorId: string) => {
-    const newFavorites = favorites.includes(instrutorId)
-      ? favorites.filter(id => id !== instrutorId)
-      : [...favorites, instrutorId];
+  const signIn = async (email: string, password: string): Promise<{ error: Error | null }> => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
+    }
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setCurrentUser(null);
+    setUserFavoritos([]);
+  };
+
+  // Legacy method alias
+  const logout = signOut;
+
+  // Update instructor (legacy)
+  const updateInstrutor = async (instrutor: Instrutor) => {
+    // Update local state immediately
+    setInstrutores(prev => prev.map(i => i.id === instrutor.id ? instrutor : i));
     
-    setFavorites(newFavorites);
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavorites));
+    // Update in database
+    try {
+      await supabase
+        .from('instrutores')
+        .update({
+          bio: instrutor.bio,
+          preco_hora: instrutor.precoHora,
+          categoria: instrutor.categoria as any,
+          anos_experiencia: instrutor.anosExperiencia,
+          bairros_atendimento: instrutor.bairrosAtendimento,
+          tem_veiculo: instrutor.temVeiculo,
+          avaliacao_media: instrutor.avaliacaoMedia,
+        })
+        .eq('id', instrutor.id);
+    } catch (err) {
+      console.error('Error updating instrutor:', err);
+    }
+
+    // Update current user if it's the same instructor
+    if (currentUser?.id === instrutor.id) {
+      setCurrentUser({
+        ...currentUser,
+        data: instrutor,
+      });
+    }
   };
 
-  const isFavorito = (instrutorId: string) => {
-    return favorites.includes(instrutorId);
+  // Toggle favorite
+  const toggleFavorito = async (instrutorId: string) => {
+    if (!currentUser || currentUser.tipo !== 'aluno') return;
+
+    const alunoId = currentUser.id;
+    const isFav = userFavoritos.includes(instrutorId);
+
+    if (isFav) {
+      // Remove favorite
+      setUserFavoritos(prev => prev.filter(id => id !== instrutorId));
+      await supabase
+        .from('favoritos')
+        .delete()
+        .eq('aluno_id', alunoId)
+        .eq('instrutor_id', instrutorId);
+    } else {
+      // Add favorite
+      setUserFavoritos(prev => [...prev, instrutorId]);
+      await supabase
+        .from('favoritos')
+        .insert({
+          aluno_id: alunoId,
+          instrutor_id: instrutorId,
+        });
+    }
   };
 
-  const registerAluno = (data: RegisterAlunoData) => {
-    const newAluno: Aluno = {
-      id: `aluno-${Date.now()}`,
-      nome: data.nome,
-      foto: data.foto,
-      cidade: data.cidade,
-      favoritos: [],
-    };
-
-    const updatedAlunos = [...alunos, newAluno];
-    setAlunos(updatedAlunos);
-    localStorage.setItem(ALUNOS_KEY, JSON.stringify(updatedAlunos));
-
-    // Auto login
-    const user: CurrentUser = {
-      id: newAluno.id,
-      tipo: 'aluno',
-      data: newAluno,
-    };
-    setCurrentUser(user);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-  };
-
-  const registerInstrutor = (data: RegisterInstrutorData) => {
-    const newInstrutor: Instrutor = {
-      id: `inst-${Date.now()}`,
-      nome: data.nome,
-      foto: data.foto,
-      cidade: data.cidade,
-      credenciamentoDetran: data.credenciamentoDetran,
-      categoria: data.categoria,
-      anosExperiencia: data.anosExperiencia,
-      precoHora: data.precoHora,
-      bairrosAtendimento: data.bairrosAtendimento,
-      temVeiculo: data.temVeiculo,
-      bio: data.bio,
-      avaliacaoMedia: 5.0,
-      avaliacoes: [],
-    };
-
-    const updatedInstrutores = [...instrutores, newInstrutor];
-    setInstrutores(updatedInstrutores);
-    localStorage.setItem(INSTRUTORES_KEY, JSON.stringify(updatedInstrutores));
-
-    // Auto login
-    const user: CurrentUser = {
-      id: newInstrutor.id,
-      tipo: 'instrutor',
-      data: newInstrutor,
-    };
-    setCurrentUser(user);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  // Check if instructor is favorite
+  const isFavorito = (instrutorId: string): boolean => {
+    return userFavoritos.includes(instrutorId);
   };
 
   return (
     <AuthContext.Provider value={{
+      user,
+      session,
+      loading,
       currentUser,
-      login,
-      logout,
       instrutores,
       alunos,
+      signUp,
+      signIn,
+      signOut,
+      logout,
       updateInstrutor,
       toggleFavorito,
       isFavorito,
-      registerAluno,
-      registerInstrutor,
     }}>
       {children}
     </AuthContext.Provider>
