@@ -29,7 +29,7 @@ function mapAulaFromDB(aula: AulaDB): Aula {
   };
 }
 
-export function useAulas(pacoteId?: string) {
+export function useAulas(pacoteId?: string, onPacoteUpdated?: () => void) {
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [aulas, setAulas] = useState<Aula[]>([]);
@@ -180,6 +180,12 @@ export function useAulas(pacoteId?: string) {
       if (rpcError) console.error('Erro ao atualizar horas:', rpcError);
 
       await fetchAulas();
+      
+      // Notify parent to update package data (progress bar)
+      if (onPacoteUpdated) {
+        onPacoteUpdated();
+      }
+      
       toast({
         title: 'Aula Realizada',
         description: 'A aula foi marcada como realizada.',
