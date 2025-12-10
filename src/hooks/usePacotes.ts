@@ -172,30 +172,18 @@ export function usePacotesAluno() {
   const [loading, setLoading] = useState(true);
 
   const fetchPacotes = useCallback(async () => {
-    if (!currentUser) {
+    if (!currentUser || currentUser.tipo !== 'aluno') {
       setPacotes([]);
       setLoading(false);
       return;
     }
 
     try {
-      // Get aluno ID from profile
-      const { data: alunoData } = await supabase
-        .from('alunos')
-        .select('id')
-        .eq('profile_id', currentUser.id)
-        .maybeSingle();
-
-      if (!alunoData) {
-        setPacotes([]);
-        setLoading(false);
-        return;
-      }
-
+      // currentUser.id is already the aluno_id
       const { data, error } = await supabase
         .from('pacotes')
         .select('*')
-        .eq('aluno_id', alunoData.id)
+        .eq('aluno_id', currentUser.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -227,30 +215,18 @@ export function usePacotesInstrutor() {
   const [loading, setLoading] = useState(true);
 
   const fetchPacotes = useCallback(async () => {
-    if (!currentUser) {
+    if (!currentUser || currentUser.tipo !== 'instrutor') {
       setPacotes([]);
       setLoading(false);
       return;
     }
 
     try {
-      // Get instrutor ID from profile
-      const { data: instrutorData } = await supabase
-        .from('instrutores')
-        .select('id')
-        .eq('profile_id', currentUser.id)
-        .maybeSingle();
-
-      if (!instrutorData) {
-        setPacotes([]);
-        setLoading(false);
-        return;
-      }
-
+      // currentUser.id is already the instrutor_id
       const { data, error } = await supabase
         .from('pacotes')
         .select('*')
-        .eq('instrutor_id', instrutorData.id)
+        .eq('instrutor_id', currentUser.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
