@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBusiness } from '@/contexts/BusinessContext';
+import { usePacotesAluno } from '@/hooks/usePacotes';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar, Star, Clock, ChevronRight } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -21,9 +22,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export default function MinhasAulasPage() {
   const navigate = useNavigate();
   const { instrutores } = useAuth();
-  const { getPacotesAluno, podeAvaliar } = useBusiness();
-
-  const pacotes = getPacotesAluno();
+  const { pacotes, loading } = usePacotesAluno();
 
   const getInstrutor = (instrutorId: string) => {
     return instrutores.find(i => i.id === instrutorId);
@@ -37,7 +36,21 @@ export default function MinhasAulasPage() {
       <Header title="Minhas Aulas" />
 
       <main className="p-4 space-y-6">
-        {pacotes.length === 0 ? (
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2].map((i) => (
+              <Card key={i} className="p-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-12 h-12 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : pacotes.length === 0 ? (
           <div className="text-center py-12">
             <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-semibold text-foreground mb-2">
@@ -96,9 +109,7 @@ export default function MinhasAulasPage() {
 
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock className="w-4 h-4" />
-                            <span>
-                              {pacote.aulas.filter(a => a.status === 'proposta' || a.status === 'confirmada').length} aulas agendadas
-                            </span>
+                            <span>Pacote de {pacote.quantidadeHoras}h</span>
                           </div>
 
                           <Button
@@ -126,7 +137,7 @@ export default function MinhasAulasPage() {
                 <div className="space-y-3">
                   {pacotesConcluidos.map((pacote) => {
                     const instrutor = getInstrutor(pacote.instrutorId);
-                    const canRate = podeAvaliar(pacote.id);
+                    const canRate = pacote.avaliacaoLiberada && !pacote.avaliacaoRealizada;
 
                     if (!instrutor) return null;
 
