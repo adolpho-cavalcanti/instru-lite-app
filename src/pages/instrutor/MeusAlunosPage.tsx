@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBusiness } from '@/contexts/BusinessContext';
+import { usePacotesInstrutor } from '@/hooks/usePacotes';
+import { supabase } from '@/integrations/supabase/client';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Users, Check, X, Clock, ChevronRight } from 'lucide-react';
 
@@ -22,22 +24,47 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export default function MeusAlunosPage() {
   const navigate = useNavigate();
   const { alunos } = useAuth();
-  const { getPacotesInstrutor, confirmarPacote, cancelarPacote } = useBusiness();
-
-  const pacotes = getPacotesInstrutor();
+  const { pacotes, loading, refetch } = usePacotesInstrutor();
 
   const getAluno = (alunoId: string) => {
     return alunos.find(a => a.id === alunoId);
   };
 
-  const handleConfirmar = (pacoteId: string) => {
-    confirmarPacote(pacoteId);
-    toast.success('Pacote confirmado!');
+  const handleConfirmar = async (pacoteId: string) => {
+    try {
+      const { error } = await supabase
+        .from('pacotes')
+        .update({ 
+          status: 'confirmado',
+          data_confirmacao: new Date().toISOString(),
+        })
+        .eq('id', pacoteId);
+
+      if (error) throw error;
+
+      toast.success('Pacote confirmado!');
+      refetch();
+    } catch (error) {
+      console.error('Erro ao confirmar pacote:', error);
+      toast.error('Não foi possível confirmar o pacote.');
+    }
   };
 
-  const handleRecusar = (pacoteId: string) => {
-    cancelarPacote(pacoteId);
-    toast.info('Pacote recusado');
+  const handleRecusar = async (pacoteId: string) => {
+    try {
+      const { error } = await supabase
+        .from('pacotes')
+        .update({ status: 'cancelado' })
+        .eq('id', pacoteId);
+
+      if (error) throw error;
+
+      toast.info('Pacote recusado');
+      refetch();
+    } catch (error) {
+      console.error('Erro ao recusar pacote:', error);
+      toast.error('Não foi possível recusar o pacote.');
+    }
   };
 
   const pacotesPendentes = pacotes.filter(p => p.status === 'pendente');
@@ -49,7 +76,21 @@ export default function MeusAlunosPage() {
       <Header title="Meus Alunos" />
 
       <main className="p-4 space-y-6">
-        {pacotes.length === 0 ? (
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="p-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-12 h-12 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : pacotes.length === 0 ? (
           <div className="text-center py-12">
             <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-semibold text-foreground mb-2">
