@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBusiness } from '@/contexts/BusinessContext';
+import { usePacote } from '@/hooks/usePacotes';
 import { useAulas } from '@/hooks/useAulas';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
@@ -12,10 +12,11 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { AulaCard } from '@/components/AulaCard';
 import { ProporAulaModal } from '@/components/ProporAulaModal';
-import { toast } from 'sonner';
-import { Calendar, CheckCircle, Star, Plus, Clock } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Calendar, CheckCircle, Star, Plus, Clock, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pendente: { label: 'Aguardando confirmação', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
   confirmado: { label: 'Confirmado', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
@@ -28,12 +29,34 @@ export default function PacoteDetalhesPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser, instrutores, alunos } = useAuth();
-  const { getPacoteById, podeAvaliar, cancelarPacote, confirmarPacote } = useBusiness();
+  const { pacote, loading: pacoteLoading, confirmarPacote, cancelarPacote, podeAvaliar } = usePacote(id);
   const { aulas, loading: aulasLoading, proporAula, confirmarAula, marcarRealizada, cancelarAula } = useAulas(id);
 
   const [showProporModal, setShowProporModal] = useState(false);
 
-  const pacote = id ? getPacoteById(id) : undefined;
+  if (pacoteLoading) {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <Header title="Detalhes do Pacote" showBack />
+        <main className="p-4 space-y-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-4">
+              <Skeleton className="w-14 h-14 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-5 w-32" />
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <Skeleton className="h-4 w-40 mb-3" />
+            <Skeleton className="h-3 w-full" />
+          </Card>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
 
   if (!pacote) {
     return (
@@ -51,9 +74,9 @@ export default function PacoteDetalhesPage() {
   const instrutor = instrutores.find(i => i.id === pacote.instrutorId);
   const aluno = alunos.find(a => a.id === pacote.alunoId);
   const outroUsuario = isAluno ? instrutor : aluno;
-  const statusInfo = STATUS_LABELS[pacote.status];
+  const statusInfo = STATUS_LABELS[pacote.status] || STATUS_LABELS.pendente;
   const progresso = (pacote.horasUtilizadas / pacote.quantidadeHoras) * 100;
-  const canRate = podeAvaliar(pacote.id);
+  const canRate = podeAvaliar();
   const horasRestantes = pacote.quantidadeHoras - pacote.horasUtilizadas;
 
   // Separate lessons by status
@@ -61,14 +84,12 @@ export default function PacoteDetalhesPage() {
   const aulasConfirmadas = aulas.filter(a => a.status === 'confirmada');
   const aulasRealizadas = aulas.filter(a => a.status === 'realizada');
 
-  const handleConfirmar = () => {
-    confirmarPacote(pacote.id);
-    toast.success('Pacote confirmado!');
+  const handleConfirmar = async () => {
+    await confirmarPacote();
   };
 
-  const handleCancelar = () => {
-    cancelarPacote(pacote.id);
-    toast.info('Pacote cancelado');
+  const handleCancelar = async () => {
+    await cancelarPacote();
     navigate(-1);
   };
 

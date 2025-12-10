@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBusiness } from '@/contexts/BusinessContext';
 import { OPCOES_PACOTE, TAXA_PLATAFORMA } from '@/types';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
@@ -17,7 +16,6 @@ export default function ComprarPacotePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { instrutores, currentUser } = useAuth();
-  const { criarPacote } = useBusiness();
   const [selectedPacote, setSelectedPacote] = useState<number | null>(10);
   const [loading, setLoading] = useState(false);
 
@@ -53,15 +51,42 @@ export default function ComprarPacotePage() {
     setLoading(true);
 
     try {
-      // Create local pacote first (will be updated after payment)
-      const pacote = criarPacote(instrutor.id, selectedPacote);
-      
-      if (!pacote) {
+      // Get aluno_id from current user
+      const { data: alunoData, error: alunoError } = await supabase
+        .from('alunos')
+        .select('id')
+        .eq('profile_id', currentUser.id)
+        .single();
+
+      if (alunoError || !alunoData) {
+        throw new Error('Aluno não encontrado');
+      }
+
+      // Calculate prices
+      const precoTotal = calcularPreco(selectedPacote);
+      const valorPlataforma = precoTotal * (TAXA_PLATAFORMA / 100);
+
+      // Create pacote in Supabase with UUID
+      const { data: pacote, error: pacoteError } = await supabase
+        .from('pacotes')
+        .insert({
+          aluno_id: alunoData.id,
+          instrutor_id: instrutor.id,
+          quantidade_horas: selectedPacote,
+          preco_total: precoTotal,
+          valor_plataforma: valorPlataforma,
+          taxa_plataforma: TAXA_PLATAFORMA,
+          status: 'pendente',
+        })
+        .select()
+        .single();
+
+      if (pacoteError || !pacote) {
         throw new Error('Erro ao criar pacote');
       }
 
       // Calculate price in cents for Stripe
-      const precoEmCentavos = Math.round(calcularPreco(selectedPacote) * 100);
+      const precoEmCentavos = Math.round(precoTotal * 100);
 
       // Call Stripe checkout edge function
       const { data, error } = await supabase.functions.invoke('create-checkout', {
