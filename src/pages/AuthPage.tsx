@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -13,6 +14,12 @@ const emailSchema = z.string().email('Email inválido');
 const passwordSchema = z.string().min(6, 'Senha deve ter pelo menos 6 caracteres');
 const nomeSchema = z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100, 'Nome muito longo');
 const cidadeSchema = z.string().min(2, 'Cidade deve ter pelo menos 2 caracteres').max(100, 'Cidade muito longa');
+const precoHoraSchema = z.number().min(30, 'Mínimo R$30/hora').max(500, 'Máximo R$500/hora');
+const credenciamentoSchema = z.string().min(3, 'Informe o credenciamento DETRAN').max(50, 'Credenciamento muito longo');
+const anosExperienciaSchema = z.number().min(0, 'Mínimo 0 anos').max(50, 'Máximo 50 anos');
+
+const CATEGORIAS_HABILITACAO = ['A', 'B', 'AB', 'C', 'D', 'E'] as const;
+type CategoriaHabilitacao = typeof CATEGORIAS_HABILITACAO[number];
 
 type AuthMode = 'login' | 'signup';
 type UserType = 'aluno' | 'instrutor';
@@ -39,6 +46,13 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Instructor-specific fields
+  const [categoria, setCategoria] = useState<CategoriaHabilitacao>('B');
+  const [precoHora, setPrecoHora] = useState(80);
+  const [credenciamentoDetran, setCredenciamentoDetran] = useState('');
+  const [temVeiculo, setTemVeiculo] = useState(false);
+  const [anosExperiencia, setAnosExperiencia] = useState(0);
 
   // Pre-fill name from Google if available
   useEffect(() => {
@@ -87,6 +101,24 @@ export default function AuthPage() {
       if (!cidadeResult.success) {
         newErrors.cidade = cidadeResult.error.errors[0].message;
       }
+
+      // Instructor-specific validation
+      if (userType === 'instrutor') {
+        const precoResult = precoHoraSchema.safeParse(precoHora);
+        if (!precoResult.success) {
+          newErrors.precoHora = precoResult.error.errors[0].message;
+        }
+
+        const credResult = credenciamentoSchema.safeParse(credenciamentoDetran);
+        if (!credResult.success) {
+          newErrors.credenciamentoDetran = credResult.error.errors[0].message;
+        }
+
+        const expResult = anosExperienciaSchema.safeParse(anosExperiencia);
+        if (!expResult.success) {
+          newErrors.anosExperiencia = expResult.error.errors[0].message;
+        }
+      }
     }
 
     setErrors(newErrors);
@@ -105,7 +137,15 @@ export default function AuthPage() {
     try {
       if (needsProfileCompletion) {
         // Complete profile for OAuth users
-        const { error } = await completeProfile(userType, nome, cidade);
+        const instrutorData = userType === 'instrutor' ? {
+          categoria,
+          precoHora,
+          credenciamentoDetran,
+          temVeiculo,
+          anosExperiencia,
+        } : undefined;
+        
+        const { error } = await completeProfile(userType, nome, cidade, instrutorData);
         if (error) {
           toast.error(error.message);
           return;
@@ -125,7 +165,15 @@ export default function AuthPage() {
         }
         toast.success('Login realizado com sucesso!');
       } else {
-        const { error } = await signUp(email, password, userType, nome, cidade);
+        const instrutorData = userType === 'instrutor' ? {
+          categoria,
+          precoHora,
+          credenciamentoDetran,
+          temVeiculo,
+          anosExperiencia,
+        } : undefined;
+
+        const { error } = await signUp(email, password, userType, nome, cidade, instrutorData);
         if (error) {
           if (error.message.includes('User already registered')) {
             toast.error('Este email já está cadastrado');
@@ -260,6 +308,105 @@ export default function AuthPage() {
                 <p className="text-sm text-destructive mt-1">{errors.cidade}</p>
               )}
             </div>
+
+            {/* Instructor-specific fields */}
+            {userType === 'instrutor' && (
+              <div className="pt-4 border-t border-border">
+                <h3 className="text-sm font-medium text-foreground mb-4">
+                  Informações profissionais
+                </h3>
+                <div className="space-y-4">
+                  {/* Categoria */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">
+                      Categoria da habilitação
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORIAS_HABILITACAO.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setCategoria(cat)}
+                          className={cn(
+                            "px-4 py-2 rounded-lg border-2 font-medium transition-all",
+                            categoria === cat
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-card text-foreground hover:border-primary/50"
+                          )}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Credenciamento DETRAN */}
+                  <div>
+                    <Label htmlFor="credenciamento">Credenciamento DETRAN</Label>
+                    <Input
+                      id="credenciamento"
+                      type="text"
+                      value={credenciamentoDetran}
+                      onChange={(e) => setCredenciamentoDetran(e.target.value)}
+                      placeholder="Ex: DETRAN-SP 123456"
+                      className={errors.credenciamentoDetran ? "border-destructive" : ""}
+                    />
+                    {errors.credenciamentoDetran && (
+                      <p className="text-sm text-destructive mt-1">{errors.credenciamentoDetran}</p>
+                    )}
+                  </div>
+
+                  {/* Anos de experiência */}
+                  <div>
+                    <Label htmlFor="experiencia">Anos de experiência</Label>
+                    <Input
+                      id="experiencia"
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={anosExperiencia}
+                      onChange={(e) => setAnosExperiencia(Number(e.target.value))}
+                      placeholder="0"
+                      className={errors.anosExperiencia ? "border-destructive" : ""}
+                    />
+                    {errors.anosExperiencia && (
+                      <p className="text-sm text-destructive mt-1">{errors.anosExperiencia}</p>
+                    )}
+                  </div>
+
+                  {/* Preço hora */}
+                  <div>
+                    <Label htmlFor="preco">Valor por hora (R$)</Label>
+                    <Input
+                      id="preco"
+                      type="number"
+                      min="30"
+                      max="500"
+                      value={precoHora}
+                      onChange={(e) => setPrecoHora(Number(e.target.value))}
+                      placeholder="80"
+                      className={errors.precoHora ? "border-destructive" : ""}
+                    />
+                    {errors.precoHora && (
+                      <p className="text-sm text-destructive mt-1">{errors.precoHora}</p>
+                    )}
+                  </div>
+
+                  {/* Tem veículo */}
+                  <div className="flex items-center justify-between p-4 bg-card rounded-xl border border-border">
+                    <div>
+                      <Label htmlFor="veiculo" className="cursor-pointer">Possui veículo próprio?</Label>
+                      <p className="text-xs text-muted-foreground">Para aulas práticas</p>
+                    </div>
+                    <Switch
+                      id="veiculo"
+                      checked={temVeiculo}
+                      onCheckedChange={setTemVeiculo}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
@@ -444,6 +591,105 @@ export default function AuthPage() {
                   <p className="text-sm text-destructive mt-1">{errors.cidade}</p>
                 )}
               </div>
+
+              {/* Instructor-specific fields */}
+              {userType === 'instrutor' && (
+                <div className="pt-4 border-t border-border">
+                  <h3 className="text-sm font-medium text-foreground mb-4">
+                    Informações profissionais
+                  </h3>
+                  <div className="space-y-4">
+                    {/* Categoria */}
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">
+                        Categoria da habilitação
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {CATEGORIAS_HABILITACAO.map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setCategoria(cat)}
+                            className={cn(
+                              "px-4 py-2 rounded-lg border-2 font-medium transition-all",
+                              categoria === cat
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-card text-foreground hover:border-primary/50"
+                            )}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Credenciamento DETRAN */}
+                    <div>
+                      <Label htmlFor="credenciamento">Credenciamento DETRAN</Label>
+                      <Input
+                        id="credenciamento"
+                        type="text"
+                        value={credenciamentoDetran}
+                        onChange={(e) => setCredenciamentoDetran(e.target.value)}
+                        placeholder="Ex: DETRAN-SP 123456"
+                        className={errors.credenciamentoDetran ? "border-destructive" : ""}
+                      />
+                      {errors.credenciamentoDetran && (
+                        <p className="text-sm text-destructive mt-1">{errors.credenciamentoDetran}</p>
+                      )}
+                    </div>
+
+                    {/* Anos de experiência */}
+                    <div>
+                      <Label htmlFor="experiencia">Anos de experiência</Label>
+                      <Input
+                        id="experiencia"
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={anosExperiencia}
+                        onChange={(e) => setAnosExperiencia(Number(e.target.value))}
+                        placeholder="0"
+                        className={errors.anosExperiencia ? "border-destructive" : ""}
+                      />
+                      {errors.anosExperiencia && (
+                        <p className="text-sm text-destructive mt-1">{errors.anosExperiencia}</p>
+                      )}
+                    </div>
+
+                    {/* Preço hora */}
+                    <div>
+                      <Label htmlFor="preco">Valor por hora (R$)</Label>
+                      <Input
+                        id="preco"
+                        type="number"
+                        min="30"
+                        max="500"
+                        value={precoHora}
+                        onChange={(e) => setPrecoHora(Number(e.target.value))}
+                        placeholder="80"
+                        className={errors.precoHora ? "border-destructive" : ""}
+                      />
+                      {errors.precoHora && (
+                        <p className="text-sm text-destructive mt-1">{errors.precoHora}</p>
+                      )}
+                    </div>
+
+                    {/* Tem veículo */}
+                    <div className="flex items-center justify-between p-4 bg-card rounded-xl border border-border">
+                      <div>
+                        <Label htmlFor="veiculo" className="cursor-pointer">Possui veículo próprio?</Label>
+                        <p className="text-xs text-muted-foreground">Para aulas práticas</p>
+                      </div>
+                      <Switch
+                        id="veiculo"
+                        checked={temVeiculo}
+                        onCheckedChange={setTemVeiculo}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 

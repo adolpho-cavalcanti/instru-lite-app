@@ -3,15 +3,23 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Check, X } from 'lucide-react';
 import { Instrutor } from '@/types';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { cn } from '@/lib/utils';
+
+const CATEGORIAS_HABILITACAO = ['A', 'B', 'AB', 'C', 'D', 'E'] as const;
+type CategoriaHabilitacao = typeof CATEGORIAS_HABILITACAO[number];
 
 const profileSchema = z.object({
   bio: z.string().max(500, 'Bio deve ter no máximo 500 caracteres').optional(),
-  precoHora: z.number().min(0, 'Preço não pode ser negativo').max(1000, 'Preço máximo é R$1000'),
-  bairrosAtendimento: z.string().max(500, 'Texto muito longo')
+  precoHora: z.number().min(30, 'Mínimo R$30/hora').max(500, 'Máximo R$500/hora'),
+  bairrosAtendimento: z.string().max(500, 'Texto muito longo'),
+  credenciamentoDetran: z.string().min(3, 'Informe o credenciamento DETRAN').max(50, 'Credenciamento muito longo'),
+  anosExperiencia: z.number().min(0, 'Mínimo 0 anos').max(50, 'Máximo 50 anos'),
 });
 
 export default function InstrutorPerfilPage() {
@@ -22,14 +30,24 @@ export default function InstrutorPerfilPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     bio: instrutor?.bio || '',
-    precoHora: instrutor?.precoHora || 0,
-    bairrosAtendimento: instrutor?.bairrosAtendimento.join(', ') || ''
+    precoHora: instrutor?.precoHora || 80,
+    bairrosAtendimento: instrutor?.bairrosAtendimento.join(', ') || '',
+    categoria: (instrutor?.categoria || 'B') as CategoriaHabilitacao,
+    temVeiculo: instrutor?.temVeiculo || false,
+    credenciamentoDetran: instrutor?.credenciamentoDetran || '',
+    anosExperiencia: instrutor?.anosExperiencia || 0,
   });
 
   if (!instrutor) return null;
 
   const handleSave = () => {
-    const result = profileSchema.safeParse(formData);
+    const result = profileSchema.safeParse({
+      bio: formData.bio,
+      precoHora: formData.precoHora,
+      bairrosAtendimento: formData.bairrosAtendimento,
+      credenciamentoDetran: formData.credenciamentoDetran,
+      anosExperiencia: formData.anosExperiencia,
+    });
     
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -49,13 +67,17 @@ export default function InstrutorPerfilPage() {
       .split(',')
       .map(b => b.trim())
       .filter(b => b.length > 0)
-      .slice(0, 20); // Limit to 20 neighborhoods
+      .slice(0, 20);
 
     const updatedInstrutor: Instrutor = {
       ...instrutor,
       bio: formData.bio,
       precoHora: Number(formData.precoHora),
-      bairrosAtendimento: bairrosArray
+      bairrosAtendimento: bairrosArray,
+      categoria: formData.categoria,
+      temVeiculo: formData.temVeiculo,
+      credenciamentoDetran: formData.credenciamentoDetran,
+      anosExperiencia: Number(formData.anosExperiencia),
     };
 
     updateInstrutor(updatedInstrutor);
@@ -67,7 +89,11 @@ export default function InstrutorPerfilPage() {
     setFormData({
       bio: instrutor.bio,
       precoHora: instrutor.precoHora,
-      bairrosAtendimento: instrutor.bairrosAtendimento.join(', ')
+      bairrosAtendimento: instrutor.bairrosAtendimento.join(', '),
+      categoria: instrutor.categoria as CategoriaHabilitacao,
+      temVeiculo: instrutor.temVeiculo,
+      credenciamentoDetran: instrutor.credenciamentoDetran,
+      anosExperiencia: instrutor.anosExperiencia,
     });
     setErrors({});
     setEditing(false);
@@ -86,11 +112,82 @@ export default function InstrutorPerfilPage() {
             className="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-4 border-accent"
           />
           <h2 className="text-xl font-bold text-foreground">{instrutor.nome}</h2>
-          <p className="text-sm text-muted-foreground">{instrutor.credenciamentoDetran}</p>
+          <p className="text-sm text-muted-foreground">{instrutor.cidade}</p>
         </div>
 
         {/* Form */}
         <div className="space-y-4">
+          {/* Credenciamento DETRAN */}
+          <div className="bg-card rounded-xl p-4 border border-border">
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Credenciamento DETRAN
+            </label>
+            {editing ? (
+              <div>
+                <input
+                  type="text"
+                  value={formData.credenciamentoDetran}
+                  onChange={(e) => setFormData({ ...formData, credenciamentoDetran: e.target.value })}
+                  placeholder="Ex: DETRAN-SP 123456"
+                  className={`w-full h-11 px-3 bg-background border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 ${errors.credenciamentoDetran ? 'border-destructive' : 'border-border'}`}
+                />
+                {errors.credenciamentoDetran && <p className="text-xs text-destructive mt-1">{errors.credenciamentoDetran}</p>}
+              </div>
+            ) : (
+              <p className="text-lg font-semibold text-foreground">{instrutor.credenciamentoDetran || '-'}</p>
+            )}
+          </div>
+
+          {/* Categoria */}
+          <div className="bg-card rounded-xl p-4 border border-border">
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Categoria da habilitação
+            </label>
+            {editing ? (
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIAS_HABILITACAO.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, categoria: cat })}
+                    className={cn(
+                      "px-4 py-2 rounded-lg border-2 font-medium transition-all",
+                      formData.categoria === cat
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-foreground hover:border-primary/50"
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-lg font-semibold text-foreground">{instrutor.categoria}</p>
+            )}
+          </div>
+
+          {/* Anos de experiência */}
+          <div className="bg-card rounded-xl p-4 border border-border">
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Anos de experiência
+            </label>
+            {editing ? (
+              <div>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={formData.anosExperiencia}
+                  onChange={(e) => setFormData({ ...formData, anosExperiencia: Number(e.target.value) })}
+                  className={`w-full h-11 px-3 bg-background border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 ${errors.anosExperiencia ? 'border-destructive' : 'border-border'}`}
+                />
+                {errors.anosExperiencia && <p className="text-xs text-destructive mt-1">{errors.anosExperiencia}</p>}
+              </div>
+            ) : (
+              <p className="text-lg font-semibold text-foreground">{instrutor.anosExperiencia} anos</p>
+            )}
+          </div>
+
           {/* Preço */}
           <div className="bg-card rounded-xl p-4 border border-border">
             <label className="text-sm font-medium text-foreground mb-2 block">
@@ -100,8 +197,8 @@ export default function InstrutorPerfilPage() {
               <div>
                 <input
                   type="number"
-                  min="0"
-                  max="1000"
+                  min="30"
+                  max="500"
                   value={formData.precoHora}
                   onChange={(e) => setFormData({ ...formData, precoHora: Number(e.target.value) })}
                   className={`w-full h-11 px-3 bg-background border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 ${errors.precoHora ? 'border-destructive' : 'border-border'}`}
@@ -111,6 +208,31 @@ export default function InstrutorPerfilPage() {
             ) : (
               <p className="text-lg font-semibold text-foreground">R${instrutor.precoHora}</p>
             )}
+          </div>
+
+          {/* Tem veículo */}
+          <div className="bg-card rounded-xl p-4 border border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm font-medium text-foreground">Possui veículo próprio?</Label>
+                <p className="text-xs text-muted-foreground">Para aulas práticas</p>
+              </div>
+              {editing ? (
+                <Switch
+                  checked={formData.temVeiculo}
+                  onCheckedChange={(checked) => setFormData({ ...formData, temVeiculo: checked })}
+                />
+              ) : (
+                <span className={cn(
+                  "px-3 py-1 rounded-full text-sm font-medium",
+                  instrutor.temVeiculo 
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    : "bg-muted text-muted-foreground"
+                )}>
+                  {instrutor.temVeiculo ? 'Sim' : 'Não'}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Bairros */}
@@ -132,14 +254,18 @@ export default function InstrutorPerfilPage() {
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {instrutor.bairrosAtendimento.map(bairro => (
-                  <span
-                    key={bairro}
-                    className="px-2 py-1 bg-muted rounded-md text-sm text-muted-foreground"
-                  >
-                    {bairro}
-                  </span>
-                ))}
+                {instrutor.bairrosAtendimento.length > 0 ? (
+                  instrutor.bairrosAtendimento.map(bairro => (
+                    <span
+                      key={bairro}
+                      className="px-2 py-1 bg-muted rounded-md text-sm text-muted-foreground"
+                    >
+                      {bairro}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-muted-foreground">Nenhum bairro cadastrado</span>
+                )}
               </div>
             )}
           </div>
@@ -169,33 +295,8 @@ export default function InstrutorPerfilPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-muted-foreground leading-relaxed">{instrutor.bio}</p>
+              <p className="text-muted-foreground leading-relaxed">{instrutor.bio || 'Nenhuma bio cadastrada'}</p>
             )}
-          </div>
-
-          {/* Campos fixos (não editáveis) */}
-          <div className="bg-muted/50 rounded-xl p-4 border border-border">
-            <p className="text-sm text-muted-foreground mb-3">
-              Campos não editáveis (contate o suporte)
-            </p>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-muted-foreground">Categoria</p>
-                <p className="font-medium text-foreground">{instrutor.categoria}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Experiência</p>
-                <p className="font-medium text-foreground">{instrutor.anosExperiencia} anos</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Cidade</p>
-                <p className="font-medium text-foreground">{instrutor.cidade}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Veículo</p>
-                <p className="font-medium text-foreground">{instrutor.temVeiculo ? 'Sim' : 'Não'}</p>
-              </div>
-            </div>
           </div>
         </div>
 
