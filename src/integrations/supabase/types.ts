@@ -359,6 +359,10 @@ export type Database = {
       get_current_aluno_id: { Args: never; Returns: string }
       get_current_instrutor_id: { Args: never; Returns: string }
       get_current_profile_id: { Args: never; Returns: string }
+      increment_horas_utilizadas: {
+        Args: { p_horas: number; p_pacote_id: string }
+        Returns: undefined
+      }
       is_aluno: { Args: never; Returns: boolean }
       is_instrutor: { Args: never; Returns: boolean }
     }
