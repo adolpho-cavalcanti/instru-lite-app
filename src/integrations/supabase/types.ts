@@ -55,6 +55,7 @@ export type Database = {
           id: string
           observacoes: string | null
           pacote_id: string
+          proposta_por: string | null
           status: Database["public"]["Enums"]["status_aula"]
           updated_at: string
         }
@@ -66,6 +67,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           pacote_id: string
+          proposta_por?: string | null
           status?: Database["public"]["Enums"]["status_aula"]
           updated_at?: string
         }
@@ -77,6 +79,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           pacote_id?: string
+          proposta_por?: string | null
           status?: Database["public"]["Enums"]["status_aula"]
           updated_at?: string
         }
@@ -361,7 +364,12 @@ export type Database = {
     }
     Enums: {
       categoria_habilitacao: "A" | "B" | "AB" | "C" | "D" | "E"
-      status_aula: "agendada" | "realizada" | "cancelada"
+      status_aula:
+        | "proposta"
+        | "confirmada"
+        | "agendada"
+        | "realizada"
+        | "cancelada"
       status_pacote:
         | "pendente"
         | "confirmado"
@@ -497,7 +505,13 @@ export const Constants = {
   public: {
     Enums: {
       categoria_habilitacao: ["A", "B", "AB", "C", "D", "E"],
-      status_aula: ["agendada", "realizada", "cancelada"],
+      status_aula: [
+        "proposta",
+        "confirmada",
+        "agendada",
+        "realizada",
+        "cancelada",
+      ],
       status_pacote: [
         "pendente",
         "confirmado",
