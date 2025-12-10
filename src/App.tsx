@@ -7,8 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { BusinessProvider } from "@/contexts/BusinessContext";
 
 // Pages
-import LoginPage from "./pages/LoginPage";
-import CadastroPage from "./pages/CadastroPage";
+import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/aluno/HomePage";
 import InstrutorProfilePage from "./pages/aluno/InstrutorProfilePage";
 import AvaliacoesPage from "./pages/aluno/AvaliacoesPage";
@@ -28,7 +27,15 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, allowedType }: { children: React.ReactNode; allowedType?: 'aluno' | 'instrutor' }) {
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return <Navigate to="/" replace />;
@@ -42,17 +49,25 @@ function ProtectedRoute({ children, allowedType }: { children: React.ReactNode; 
 }
 
 function AppRoutes() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <Routes>
-      {/* Login */}
+      {/* Auth */}
       <Route 
         path="/" 
         element={
           currentUser 
             ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
-            : <LoginPage />
+            : <AuthPage />
         } 
       />
       <Route 
@@ -60,7 +75,7 @@ function AppRoutes() {
         element={
           currentUser 
             ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
-            : <LoginPage />
+            : <AuthPage />
         } 
       />
       <Route 
@@ -68,7 +83,7 @@ function AppRoutes() {
         element={
           currentUser 
             ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
-            : <CadastroPage />
+            : <AuthPage />
         } 
       />
 
