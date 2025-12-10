@@ -180,6 +180,7 @@ export function usePacotesAluno() {
 
     try {
       // currentUser.id is already the aluno_id
+      console.log('[usePacotesAluno] Buscando pacotes para aluno_id:', currentUser.id);
       const { data, error } = await supabase
         .from('pacotes')
         .select('*')
@@ -187,7 +188,8 @@ export function usePacotesAluno() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
+      
+      console.log('[usePacotesAluno] Pacotes encontrados:', data?.length, data);
       setPacotes((data || []).map(mapPacoteFromDB));
     } catch (error) {
       console.error('Erro ao buscar pacotes:', error);
