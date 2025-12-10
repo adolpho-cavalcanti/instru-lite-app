@@ -126,9 +126,9 @@ export default function InstrutorProfilePage() {
           <div className="bg-card rounded-xl p-3 border border-border">
             <div className="flex items-center gap-2 mb-1">
               <Car className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">Categoria</span>
+              <span className="text-xs text-muted-foreground">Categorias</span>
             </div>
-            <p className="font-semibold text-foreground">{instrutor.categoria}</p>
+            <p className="font-semibold text-foreground">{instrutor.categorias?.join(', ') || 'B'}</p>
           </div>
 
           <div className="bg-card rounded-xl p-3 border border-border">

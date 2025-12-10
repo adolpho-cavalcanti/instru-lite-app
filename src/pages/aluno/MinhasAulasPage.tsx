@@ -97,7 +97,7 @@ export default function MinhasAulasPage() {
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock className="w-4 h-4" />
                             <span>
-                              {pacote.aulas.filter(a => a.status === 'agendada').length} aulas agendadas
+                              {pacote.aulas.filter(a => a.status === 'proposta' || a.status === 'confirmada').length} aulas agendadas
                             </span>
                           </div>
 

@@ -10,7 +10,7 @@ type DbAluno = Database['public']['Tables']['alunos']['Row'];
 
 // Instructor data for signup/profile completion
 export interface InstrutorSignupData {
-  categoria: 'A' | 'B' | 'AB' | 'C' | 'D' | 'E';
+  categorias: string[];
   precoHora: number;
   credenciamentoDetran: string;
   temVeiculo: boolean;
@@ -49,13 +49,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Convert DB instructor to legacy format
 function toInstrutor(dbInstrutor: DbInstrutor, profile: Profile, avaliacoes: any[] = []): Instrutor {
+  // Handle both single categoria and multiple categorias from DB
+  const categorias = dbInstrutor.categoria ? [dbInstrutor.categoria] : [];
+  
   return {
     id: dbInstrutor.id,
     nome: profile.nome,
     foto: profile.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
     cidade: profile.cidade,
     credenciamentoDetran: dbInstrutor.credenciamento_detran,
-    categoria: dbInstrutor.categoria,
+    categorias,
     anosExperiencia: dbInstrutor.anos_experiencia,
     precoHora: Number(dbInstrutor.preco_hora),
     bairrosAtendimento: dbInstrutor.bairros_atendimento || [],
@@ -307,7 +310,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .from('instrutores')
             .insert({
               profile_id: profile.id,
-              categoria: instrutorData.categoria,
+              categoria: instrutorData.categorias?.[0] as any || 'B',
               preco_hora: instrutorData.precoHora,
               credenciamento_detran: instrutorData.credenciamentoDetran,
               tem_veiculo: instrutorData.temVeiculo,
@@ -426,7 +429,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .from('instrutores')
           .insert({
             profile_id: profile.id,
-            categoria: instrutorData.categoria,
+            categoria: instrutorData.categorias?.[0] as any || 'B',
             preco_hora: instrutorData.precoHora,
             credenciamento_detran: instrutorData.credenciamentoDetran,
             tem_veiculo: instrutorData.temVeiculo,
@@ -497,7 +500,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .update({
           bio: instrutor.bio,
           preco_hora: instrutor.precoHora,
-          categoria: instrutor.categoria as any,
+          categoria: instrutor.categorias?.[0] as any || 'B',
           anos_experiencia: instrutor.anosExperiencia,
           bairros_atendimento: instrutor.bairrosAtendimento,
           tem_veiculo: instrutor.temVeiculo,

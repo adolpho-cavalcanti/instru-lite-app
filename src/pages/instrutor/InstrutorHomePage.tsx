@@ -81,8 +81,8 @@ export default function InstrutorHomePage() {
                 <Car className="w-4 h-4 text-primary" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mb-1">Categoria</p>
-            <p className="font-semibold text-foreground">{instrutor.categoria}</p>
+            <p className="text-xs text-muted-foreground mb-1">Categorias</p>
+            <p className="font-semibold text-foreground">{instrutor.categorias?.join(', ') || 'B'}</p>
           </div>
 
           <div className="bg-card rounded-xl p-4 border border-border">

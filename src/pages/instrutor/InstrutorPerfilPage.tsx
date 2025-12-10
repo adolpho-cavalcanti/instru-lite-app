@@ -32,7 +32,7 @@ export default function InstrutorPerfilPage() {
     bio: instrutor?.bio || '',
     precoHora: instrutor?.precoHora || 80,
     bairrosAtendimento: instrutor?.bairrosAtendimento.join(', ') || '',
-    categoria: (instrutor?.categoria || 'B') as CategoriaHabilitacao,
+    categorias: instrutor?.categorias || ['B'],
     temVeiculo: instrutor?.temVeiculo || false,
     credenciamentoDetran: instrutor?.credenciamentoDetran || '',
     anosExperiencia: instrutor?.anosExperiencia || 0,
@@ -74,7 +74,7 @@ export default function InstrutorPerfilPage() {
       bio: formData.bio,
       precoHora: Number(formData.precoHora),
       bairrosAtendimento: bairrosArray,
-      categoria: formData.categoria,
+      categorias: formData.categorias,
       temVeiculo: formData.temVeiculo,
       credenciamentoDetran: formData.credenciamentoDetran,
       anosExperiencia: Number(formData.anosExperiencia),
@@ -90,7 +90,7 @@ export default function InstrutorPerfilPage() {
       bio: instrutor.bio,
       precoHora: instrutor.precoHora,
       bairrosAtendimento: instrutor.bairrosAtendimento.join(', '),
-      categoria: instrutor.categoria as CategoriaHabilitacao,
+      categorias: instrutor.categorias || ['B'],
       temVeiculo: instrutor.temVeiculo,
       credenciamentoDetran: instrutor.credenciamentoDetran,
       anosExperiencia: instrutor.anosExperiencia,
@@ -138,31 +138,42 @@ export default function InstrutorPerfilPage() {
             )}
           </div>
 
-          {/* Categoria */}
+          {/* Categorias */}
           <div className="bg-card rounded-xl p-4 border border-border">
             <label className="text-sm font-medium text-foreground mb-2 block">
-              Categoria da habilitação
+              Categorias da habilitação
             </label>
             {editing ? (
               <div className="flex flex-wrap gap-2">
-                {CATEGORIAS_HABILITACAO.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, categoria: cat })}
-                    className={cn(
-                      "px-4 py-2 rounded-lg border-2 font-medium transition-all",
-                      formData.categoria === cat
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background text-foreground hover:border-primary/50"
-                    )}
-                  >
-                    {cat}
-                  </button>
-                ))}
+                {CATEGORIAS_HABILITACAO.map((cat) => {
+                  const isSelected = formData.categorias.includes(cat);
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          if (formData.categorias.length > 1) {
+                            setFormData({ ...formData, categorias: formData.categorias.filter(c => c !== cat) });
+                          }
+                        } else {
+                          setFormData({ ...formData, categorias: [...formData.categorias, cat] });
+                        }
+                      }}
+                      className={cn(
+                        "px-4 py-2 rounded-lg border-2 font-medium transition-all",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-foreground hover:border-primary/50"
+                      )}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
               </div>
             ) : (
-              <p className="text-lg font-semibold text-foreground">{instrutor.categoria}</p>
+              <p className="text-lg font-semibold text-foreground">{instrutor.categorias?.join(', ') || 'B'}</p>
             )}
           </div>
 

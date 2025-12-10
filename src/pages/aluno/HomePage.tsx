@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const CIDADES = ['Todas', 'São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Curitiba', 'Salvador'];
-const CATEGORIAS = ['Todas', 'B', 'A/B'];
+const CATEGORIAS = ['Todas', 'A', 'B', 'C', 'D', 'E'];
 
 export default function HomePage() {
   const { instrutores, currentUser } = useAuth();
@@ -22,7 +22,8 @@ export default function HomePage() {
       const matchesSearch = instrutor.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
         instrutor.cidade.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCidade = selectedCidade === 'Todas' || instrutor.cidade === selectedCidade;
-      const matchesCategoria = selectedCategoria === 'Todas' || instrutor.categoria === selectedCategoria;
+      const matchesCategoria = selectedCategoria === 'Todas' || 
+        (instrutor.categorias && instrutor.categorias.includes(selectedCategoria));
       
       return matchesSearch && matchesCidade && matchesCategoria;
     });
