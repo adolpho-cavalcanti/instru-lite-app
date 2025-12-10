@@ -145,7 +145,7 @@ export function useAulas(pacoteId?: string) {
   const marcarRealizada = async (aulaId: string) => {
     try {
       const aula = aulas.find(a => a.id === aulaId);
-      if (!aula) return;
+      if (!aula || !pacoteId) return;
 
       const { error } = await supabase
         .from('aulas')
@@ -154,11 +154,29 @@ export function useAulas(pacoteId?: string) {
 
       if (error) throw error;
 
-      // Update package hours
-      await supabase.rpc('increment_horas_utilizadas', {
-        p_pacote_id: pacoteId,
-        p_horas: aula.duracao,
-      }).then(() => {}).catch(() => {});
+      // Update package hours using raw SQL call
+      const { error: rpcError } = await supabase
+        .from('pacotes')
+        .select('quantidade_horas, horas_utilizadas')
+        .eq('id', pacoteId)
+        .single()
+        .then(async ({ data: pacote }) => {
+          if (!pacote) return { error: new Error('Pacote não encontrado') };
+          const newHoras = Math.min(pacote.horas_utilizadas + aula.duracao, pacote.quantidade_horas);
+          const isConcluido = newHoras >= pacote.quantidade_horas;
+          
+          return supabase
+            .from('pacotes')
+            .update({
+              horas_utilizadas: newHoras,
+              status: isConcluido ? 'concluido' : (pacote.horas_utilizadas === 0 ? 'em_andamento' : undefined),
+              avaliacao_liberada: isConcluido ? true : undefined,
+              data_conclusao: isConcluido ? new Date().toISOString() : undefined,
+            })
+            .eq('id', pacoteId);
+        });
+
+      if (rpcError) console.error('Erro ao atualizar horas:', rpcError);
 
       await fetchAulas();
       toast({

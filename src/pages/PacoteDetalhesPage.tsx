@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
+import { useAulas } from '@/hooks/useAulas';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -9,11 +10,12 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { AulaCard } from '@/components/AulaCard';
+import { ProporAulaModal } from '@/components/ProporAulaModal';
 import { toast } from 'sonner';
-import { Calendar, CheckCircle, Star, Plus, Minus } from 'lucide-react';
+import { Calendar, CheckCircle, Star, Plus, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pendente: { label: 'Aguardando confirmação', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
   confirmado: { label: 'Confirmado', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
@@ -26,9 +28,10 @@ export default function PacoteDetalhesPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser, instrutores, alunos } = useAuth();
-  const { getPacoteById, podeAvaliar, cancelarPacote, confirmarPacote, registrarHorasRealizadas } = useBusiness();
+  const { getPacoteById, podeAvaliar, cancelarPacote, confirmarPacote } = useBusiness();
+  const { aulas, loading: aulasLoading, proporAula, confirmarAula, marcarRealizada, cancelarAula } = useAulas(id);
 
-  const [horasParaRegistrar, setHorasParaRegistrar] = useState(1);
+  const [showProporModal, setShowProporModal] = useState(false);
 
   const pacote = id ? getPacoteById(id) : undefined;
 
@@ -53,6 +56,11 @@ export default function PacoteDetalhesPage() {
   const canRate = podeAvaliar(pacote.id);
   const horasRestantes = pacote.quantidadeHoras - pacote.horasUtilizadas;
 
+  // Separate lessons by status
+  const aulasPendentes = aulas.filter(a => a.status === 'proposta');
+  const aulasConfirmadas = aulas.filter(a => a.status === 'confirmada');
+  const aulasRealizadas = aulas.filter(a => a.status === 'realizada');
+
   const handleConfirmar = () => {
     confirmarPacote(pacote.id);
     toast.success('Pacote confirmado!');
@@ -64,19 +72,8 @@ export default function PacoteDetalhesPage() {
     navigate(-1);
   };
 
-  const handleRegistrarHoras = () => {
-    if (horasParaRegistrar <= 0 || horasParaRegistrar > horasRestantes) return;
-    
-    registrarHorasRealizadas(pacote.id, horasParaRegistrar);
-    
-    if (horasParaRegistrar >= horasRestantes) {
-      toast.success('Pacote concluído!', {
-        description: 'O aluno agora pode avaliar suas aulas.',
-      });
-    } else {
-      toast.success(`${horasParaRegistrar}h registrada(s) com sucesso!`);
-    }
-    setHorasParaRegistrar(1);
+  const handleProporAula = async (data: { data: string; horario: string; duracao: number; observacoes?: string }) => {
+    await proporAula(data);
   };
 
   return (
@@ -122,45 +119,81 @@ export default function PacoteDetalhesPage() {
           </div>
         </Card>
 
-        {/* Ação do Instrutor - Registrar horas */}
-        {isInstrutor && ['confirmado', 'em_andamento'].includes(pacote.status) && horasRestantes > 0 && (
-          <Card className="p-4 border-primary/20 bg-primary/5">
+        {/* Aulas Pendentes (propostas) */}
+        {aulasPendentes.length > 0 && (
+          <Card className="p-4 border-warning/30 bg-warning/5">
             <h3 className="font-medium text-foreground mb-3 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-primary" />
-              Registrar aulas realizadas
+              <Clock className="w-5 h-5 text-warning" />
+              Propostas de Aula ({aulasPendentes.length})
             </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Confirme as horas de aula que você realizou com este aluno.
-            </p>
-            
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setHorasParaRegistrar(Math.max(1, horasParaRegistrar - 1))}
-                disabled={horasParaRegistrar <= 1}
-              >
-                <Minus className="w-4 h-4" />
-              </Button>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-foreground">{horasParaRegistrar}h</p>
-                <p className="text-xs text-muted-foreground">horas</p>
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setHorasParaRegistrar(Math.min(horasRestantes, horasParaRegistrar + 1))}
-                disabled={horasParaRegistrar >= horasRestantes}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+            <div className="space-y-3">
+              {aulasPendentes.map(aula => (
+                <AulaCard
+                  key={aula.id}
+                  aula={aula}
+                  nomeOutraParte={outroUsuario?.nome}
+                  isInstrutor={isInstrutor}
+                  onConfirmar={() => confirmarAula(aula.id)}
+                  onRecusar={() => cancelarAula(aula.id)}
+                  onCancelar={() => cancelarAula(aula.id)}
+                />
+              ))}
             </div>
-
-            <Button className="w-full" onClick={handleRegistrarHoras}>
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Confirmar {horasParaRegistrar}h realizada{horasParaRegistrar > 1 ? 's' : ''}
-            </Button>
           </Card>
+        )}
+
+        {/* Aulas Confirmadas */}
+        {aulasConfirmadas.length > 0 && (
+          <Card className="p-4 border-primary/30 bg-primary/5">
+            <h3 className="font-medium text-foreground mb-3 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              Aulas Agendadas ({aulasConfirmadas.length})
+            </h3>
+            <div className="space-y-3">
+              {aulasConfirmadas.map(aula => (
+                <AulaCard
+                  key={aula.id}
+                  aula={aula}
+                  nomeOutraParte={outroUsuario?.nome}
+                  isInstrutor={isInstrutor}
+                  onMarcarRealizada={() => marcarRealizada(aula.id)}
+                  onCancelar={() => cancelarAula(aula.id)}
+                />
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Aulas Realizadas */}
+        {aulasRealizadas.length > 0 && (
+          <Card className="p-4">
+            <h3 className="font-medium text-foreground mb-3 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-success" />
+              Aulas Realizadas ({aulasRealizadas.length})
+            </h3>
+            <div className="space-y-3">
+              {aulasRealizadas.map(aula => (
+                <AulaCard
+                  key={aula.id}
+                  aula={aula}
+                  nomeOutraParte={outroUsuario?.nome}
+                  isInstrutor={isInstrutor}
+                />
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Botão para propor nova aula */}
+        {['confirmado', 'em_andamento'].includes(pacote.status) && horasRestantes > 0 && (
+          <Button 
+            className="w-full" 
+            variant="outline"
+            onClick={() => setShowProporModal(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Propor Nova Aula
+          </Button>
         )}
 
         {/* Ação do Instrutor - Confirmar pacote pendente */}
@@ -267,6 +300,14 @@ export default function PacoteDetalhesPage() {
       </main>
 
       <BottomNav />
+
+      {/* Modal para propor aula */}
+      <ProporAulaModal
+        isOpen={showProporModal}
+        onClose={() => setShowProporModal(false)}
+        onSubmit={handleProporAula}
+        titulo={isInstrutor ? "Propor Aula para o Aluno" : "Propor Horário de Aula"}
+      />
     </div>
   );
 }
