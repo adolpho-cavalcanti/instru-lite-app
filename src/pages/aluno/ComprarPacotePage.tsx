@@ -51,16 +51,8 @@ export default function ComprarPacotePage() {
     setLoading(true);
 
     try {
-      // Get aluno_id from current user
-      const { data: alunoData, error: alunoError } = await supabase
-        .from('alunos')
-        .select('id')
-        .eq('profile_id', currentUser.id)
-        .single();
-
-      if (alunoError || !alunoData) {
-        throw new Error('Aluno não encontrado');
-      }
+      // currentUser.id is already the aluno_id
+      const alunoId = currentUser.id;
 
       // Calculate prices
       const precoTotal = calcularPreco(selectedPacote);
@@ -70,7 +62,7 @@ export default function ComprarPacotePage() {
       const { data: pacote, error: pacoteError } = await supabase
         .from('pacotes')
         .insert({
-          aluno_id: alunoData.id,
+          aluno_id: alunoId,
           instrutor_id: instrutor.id,
           quantidade_horas: selectedPacote,
           preco_total: precoTotal,
