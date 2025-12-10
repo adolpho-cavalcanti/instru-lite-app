@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuthNew } from '@/contexts/AuthContextNew';
+import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
@@ -20,7 +20,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 export default function MinhasAulasPage() {
   const navigate = useNavigate();
-  const { instrutores } = useAuthNew();
+  const { instrutores } = useAuth();
   const { getPacotesAluno, podeAvaliar } = useBusiness();
 
   const pacotes = getPacotesAluno();
@@ -70,12 +70,12 @@ export default function MinhasAulasPage() {
                       <Card key={pacote.id} className="p-4">
                         <div className="flex items-start gap-3 mb-3">
                           <Avatar className="w-12 h-12">
-                            <AvatarImage src={instrutor.profile?.foto || ''} alt={instrutor.profile?.nome || ''} />
-                            <AvatarFallback>{instrutor.profile?.nome?.charAt(0) || 'I'}</AvatarFallback>
+                            <AvatarImage src={instrutor.foto} alt={instrutor.nome} />
+                            <AvatarFallback>{instrutor.nome.charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-foreground truncate">
-                              {instrutor.profile?.nome}
+                              {instrutor.nome}
                             </h3>
                             <Badge className={`mt-1 ${statusInfo.color}`}>
                               {statusInfo.label}
@@ -134,12 +134,12 @@ export default function MinhasAulasPage() {
                       <Card key={pacote.id} className="p-4">
                         <div className="flex items-center gap-3">
                           <Avatar className="w-10 h-10">
-                            <AvatarImage src={instrutor.profile?.foto || ''} alt={instrutor.profile?.nome || ''} />
-                            <AvatarFallback>{instrutor.profile?.nome?.charAt(0) || 'I'}</AvatarFallback>
+                            <AvatarImage src={instrutor.foto} alt={instrutor.nome} />
+                            <AvatarFallback>{instrutor.nome.charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-medium text-foreground truncate">
-                              {instrutor.profile?.nome}
+                              {instrutor.nome}
                             </h3>
                             <p className="text-sm text-muted-foreground">
                               {pacote.quantidadeHoras}h concluídas

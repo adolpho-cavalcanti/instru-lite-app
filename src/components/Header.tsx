@@ -1,6 +1,6 @@
 import { ChevronLeft, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthNew } from '@/contexts/AuthContextNew';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -12,11 +12,11 @@ interface HeaderProps {
 
 export function Header({ title, showBack, showLogout, className }: HeaderProps) {
   const navigate = useNavigate();
-  const { signOut } = useAuthNew();
+  const { logout } = useAuth();
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/auth');
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   return (

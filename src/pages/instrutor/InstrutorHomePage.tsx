@@ -1,15 +1,19 @@
-import { useAuthNew } from '@/contexts/AuthContextNew';
+import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
+import { StarRating } from '@/components/StarRating';
 import { MapPin, Car, Clock, Shield, Star, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { Instrutor } from '@/types';
 
 export default function InstrutorHomePage() {
-  const { profile, instrutorData } = useAuthNew();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  if (!instrutorData || !profile) return null;
+  const instrutor = currentUser?.data as Instrutor;
+
+  if (!instrutor) return null;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -20,16 +24,19 @@ export default function InstrutorHomePage() {
         <div className="gradient-hero rounded-2xl p-5 mb-6 text-primary-foreground">
           <div className="flex items-start gap-4">
             <img
-              src={profile.foto || '/placeholder.svg'}
-              alt={profile.nome}
+              src={instrutor.foto}
+              alt={instrutor.nome}
               className="w-16 h-16 rounded-xl object-cover border-2 border-primary-foreground/30"
             />
             <div className="flex-1">
               <p className="text-primary-foreground/80 text-sm">Bem-vindo(a),</p>
-              <h1 className="text-xl font-bold mb-1">{profile.nome}</h1>
+              <h1 className="text-xl font-bold mb-1">{instrutor.nome}</h1>
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 fill-warning text-warning" />
-                <span className="font-medium">{Number(instrutorData.avaliacao_media || 5).toFixed(1)}</span>
+                <span className="font-medium">{instrutor.avaliacaoMedia.toFixed(1)}</span>
+                <span className="text-primary-foreground/70 text-sm">
+                  ({instrutor.avaliacoes.length} avaliações)
+                </span>
               </div>
             </div>
           </div>
@@ -65,7 +72,7 @@ export default function InstrutorHomePage() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">Credenciamento</p>
-            <p className="font-semibold text-foreground">{instrutorData.credenciamento_detran}</p>
+            <p className="font-semibold text-foreground">{instrutor.credenciamentoDetran}</p>
           </div>
 
           <div className="bg-card rounded-xl p-4 border border-border">
@@ -75,7 +82,7 @@ export default function InstrutorHomePage() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">Categoria</p>
-            <p className="font-semibold text-foreground">{instrutorData.categoria}</p>
+            <p className="font-semibold text-foreground">{instrutor.categoria}</p>
           </div>
 
           <div className="bg-card rounded-xl p-4 border border-border">
@@ -85,7 +92,7 @@ export default function InstrutorHomePage() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">Experiência</p>
-            <p className="font-semibold text-foreground">{instrutorData.anos_experiencia} anos</p>
+            <p className="font-semibold text-foreground">{instrutor.anosExperiencia} anos</p>
           </div>
 
           <div className="bg-card rounded-xl p-4 border border-border">
@@ -95,7 +102,7 @@ export default function InstrutorHomePage() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">Valor/hora</p>
-            <p className="font-semibold text-foreground">R${Number(instrutorData.preco_hora).toFixed(0)}</p>
+            <p className="font-semibold text-foreground">R${instrutor.precoHora}</p>
           </div>
         </div>
 
@@ -103,11 +110,11 @@ export default function InstrutorHomePage() {
         <div className="bg-card rounded-xl p-4 border border-border mb-4">
           <div className="flex items-center gap-2 mb-3">
             <MapPin className="w-5 h-5 text-primary" />
-            <span className="font-medium text-foreground">{profile.cidade}</span>
+            <span className="font-medium text-foreground">{instrutor.cidade}</span>
           </div>
           <p className="text-sm text-muted-foreground mb-2">Bairros de atendimento:</p>
           <div className="flex flex-wrap gap-2">
-            {instrutorData.bairros_atendimento?.map(bairro => (
+            {instrutor.bairrosAtendimento.map(bairro => (
               <span
                 key={bairro}
                 className="px-2 py-1 bg-muted rounded-md text-xs text-muted-foreground"
@@ -119,14 +126,12 @@ export default function InstrutorHomePage() {
         </div>
 
         {/* Bio Preview */}
-        {instrutorData.bio && (
-          <div className="bg-card rounded-xl p-4 border border-border">
-            <h3 className="font-medium text-foreground mb-2">Sua bio</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {instrutorData.bio}
-            </p>
-          </div>
-        )}
+        <div className="bg-card rounded-xl p-4 border border-border">
+          <h3 className="font-medium text-foreground mb-2">Sua bio</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {instrutor.bio}
+          </p>
+        </div>
       </main>
 
       <BottomNav />

@@ -1,0 +1,212 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { PacoteAulas, StatusPacote, OPCOES_PACOTE, TAXA_PLATAFORMA } from '@/types';
+import { useAuth } from './AuthContext';
+
+interface BusinessContextType {
+  // Pacotes
+  pacotes: PacoteAulas[];
+  criarPacote: (instrutorId: string, horas: number) => PacoteAulas | null;
+  confirmarPacote: (pacoteId: string) => void;
+  cancelarPacote: (pacoteId: string) => void;
+  registrarHorasRealizadas: (pacoteId: string, horas: number) => void;
+  getPacotesAluno: () => PacoteAulas[];
+  getPacotesInstrutor: () => PacoteAulas[];
+  getPacoteById: (pacoteId: string) => PacoteAulas | undefined;
+  
+  // Avaliações
+  podeAvaliar: (pacoteId: string) => boolean;
+  enviarAvaliacao: (pacoteId: string, nota: number, comentario: string) => void;
+}
+
+const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
+
+const PACOTES_KEY = 'instrutor_plus_pacotes';
+
+export function BusinessProvider({ children }: { children: ReactNode }) {
+  const auth = useAuth();
+  const { currentUser, instrutores, updateInstrutor } = auth || { currentUser: null, instrutores: [], updateInstrutor: () => {} };
+  const [pacotes, setPacotes] = useState<PacoteAulas[]>([]);
+
+  // Load initial data
+  useEffect(() => {
+    const storedPacotes = localStorage.getItem(PACOTES_KEY);
+    if (storedPacotes) {
+      setPacotes(JSON.parse(storedPacotes));
+    }
+  }, []);
+
+  // Persist pacotes
+  const savePacotes = (newPacotes: PacoteAulas[]) => {
+    setPacotes(newPacotes);
+    localStorage.setItem(PACOTES_KEY, JSON.stringify(newPacotes));
+  };
+
+  // ========== PACOTES ==========
+  const criarPacote = (instrutorId: string, horas: number): PacoteAulas | null => {
+    if (!currentUser || currentUser.tipo !== 'aluno') return null;
+    
+    const instrutor = instrutores.find(i => i.id === instrutorId);
+    if (!instrutor) return null;
+
+    const opcao = OPCOES_PACOTE.find(o => o.horas === horas);
+    const desconto = opcao?.desconto || 0;
+    const precoBase = instrutor.precoHora * horas;
+    const precoComDesconto = precoBase * (1 - desconto / 100);
+    
+    // Taxa fixa de 10%
+    const valorPlataforma = precoComDesconto * (TAXA_PLATAFORMA / 100);
+
+    const novoPacote: PacoteAulas = {
+      id: `pacote-${Date.now()}`,
+      alunoId: currentUser.id,
+      instrutorId,
+      quantidadeHoras: horas,
+      horasUtilizadas: 0,
+      precoTotal: precoComDesconto,
+      taxaPlataforma: TAXA_PLATAFORMA,
+      valorPlataforma,
+      status: 'pendente',
+      dataCriacao: new Date().toISOString(),
+      aulas: [],
+      avaliacaoLiberada: false,
+      avaliacaoRealizada: false,
+    };
+
+    const newPacotes = [...pacotes, novoPacote];
+    savePacotes(newPacotes);
+
+    return novoPacote;
+  };
+
+  const confirmarPacote = (pacoteId: string) => {
+    const updated = pacotes.map(p => {
+      if (p.id === pacoteId && p.status === 'pendente') {
+        return {
+          ...p,
+          status: 'confirmado' as StatusPacote,
+          dataConfirmacao: new Date().toISOString(),
+        };
+      }
+      return p;
+    });
+    savePacotes(updated);
+  };
+
+  const cancelarPacote = (pacoteId: string) => {
+    const updated = pacotes.map(p => {
+      if (p.id === pacoteId && ['pendente', 'confirmado'].includes(p.status)) {
+        return { ...p, status: 'cancelado' as StatusPacote };
+      }
+      return p;
+    });
+    savePacotes(updated);
+  };
+
+  // Instrutor registra horas realizadas
+  const registrarHorasRealizadas = (pacoteId: string, horas: number) => {
+    if (!currentUser || currentUser.tipo !== 'instrutor') return;
+
+    const updated = pacotes.map(p => {
+      if (p.id === pacoteId && p.instrutorId === currentUser.id) {
+        const novasHorasUtilizadas = Math.min(p.horasUtilizadas + horas, p.quantidadeHoras);
+        const concluido = novasHorasUtilizadas >= p.quantidadeHoras;
+
+        return {
+          ...p,
+          horasUtilizadas: novasHorasUtilizadas,
+          status: concluido ? 'concluido' as StatusPacote : 'em_andamento' as StatusPacote,
+          dataConclusao: concluido ? new Date().toISOString() : undefined,
+          avaliacaoLiberada: concluido,
+        };
+      }
+      return p;
+    });
+    savePacotes(updated);
+  };
+
+  const getPacotesAluno = () => {
+    if (!currentUser || currentUser.tipo !== 'aluno') return [];
+    return pacotes.filter(p => p.alunoId === currentUser.id);
+  };
+
+  const getPacotesInstrutor = () => {
+    if (!currentUser || currentUser.tipo !== 'instrutor') return [];
+    return pacotes.filter(p => p.instrutorId === currentUser.id);
+  };
+
+  const getPacoteById = (pacoteId: string) => {
+    return pacotes.find(p => p.id === pacoteId);
+  };
+
+  // ========== AVALIAÇÕES ==========
+  const podeAvaliar = (pacoteId: string): boolean => {
+    const pacote = pacotes.find(p => p.id === pacoteId);
+    if (!pacote) return false;
+    return pacote.avaliacaoLiberada && !pacote.avaliacaoRealizada;
+  };
+
+  const enviarAvaliacao = (pacoteId: string, nota: number, comentario: string) => {
+    if (!currentUser || currentUser.tipo !== 'aluno') return;
+    
+    const pacote = pacotes.find(p => p.id === pacoteId);
+    if (!pacote || !podeAvaliar(pacoteId)) return;
+
+    const instrutor = instrutores.find(i => i.id === pacote.instrutorId);
+    if (!instrutor) return;
+
+    // Criar avaliação
+    const novaAvaliacao = {
+      id: `av-${Date.now()}`,
+      autor: (currentUser.data as { nome: string }).nome,
+      alunoId: currentUser.id,
+      nota,
+      comentario,
+      data: new Date().toISOString().split('T')[0],
+      pacoteId,
+    };
+
+    // Atualizar instrutor com nova avaliação
+    const novasAvaliacoes = [...instrutor.avaliacoes, novaAvaliacao];
+    const novaMedia = novasAvaliacoes.reduce((acc, av) => acc + av.nota, 0) / novasAvaliacoes.length;
+
+    updateInstrutor({
+      ...instrutor,
+      avaliacoes: novasAvaliacoes,
+      avaliacaoMedia: Math.round(novaMedia * 10) / 10,
+    });
+
+    // Marcar pacote como avaliado
+    const updatedPacotes = pacotes.map(p => {
+      if (p.id === pacoteId) {
+        return { ...p, avaliacaoRealizada: true };
+      }
+      return p;
+    });
+    savePacotes(updatedPacotes);
+  };
+
+  return (
+    <BusinessContext.Provider value={{
+      pacotes,
+      criarPacote,
+      confirmarPacote,
+      cancelarPacote,
+      registrarHorasRealizadas,
+      getPacotesAluno,
+      getPacotesInstrutor,
+      getPacoteById,
+      podeAvaliar,
+      enviarAvaliacao,
+    }}>
+      {children}
+    </BusinessContext.Provider>
+  );
+}
+
+export function useBusiness() {
+  const context = useContext(BusinessContext);
+  if (context === undefined) {
+    throw new Error('useBusiness must be used within a BusinessProvider');
+  }
+  return context;
+}

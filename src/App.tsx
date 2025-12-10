@@ -4,79 +4,124 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { PackageProvider } from "@/contexts/PackageContext";
+import { BusinessProvider } from "@/contexts/BusinessContext";
 
 // Pages
-import AuthPage from "./pages/AuthPage";
-import HomePage from "./pages/student/HomePage";
-import InstructorProfilePage from "./pages/student/InstructorProfilePage";
-import ReviewsPage from "./pages/student/ReviewsPage";
-import FavoritesPage from "./pages/student/FavoritesPage";
-import StudentProfilePage from "./pages/student/StudentProfilePage";
-import BuyPackagePage from "./pages/student/BuyPackagePage";
-import MyLessonsPage from "./pages/student/MyLessonsPage";
-import RateInstructorPage from "./pages/student/RateInstructorPage";
-import PackageDetailsPage from "./pages/PackageDetailsPage";
-import InstructorHomePage from "./pages/instrutor/InstrutorHomePage";
-import InstructorReviewsPage from "./pages/instrutor/InstrutorAvaliacoesPage";
-import InstructorEditProfilePage from "./pages/instrutor/InstrutorPerfilPage";
-import HowItWorksPage from "./pages/instrutor/AssinaturaPage";
-import MyStudentsPage from "./pages/instrutor/MeusAlunosPage";
+import LoginPage from "./pages/LoginPage";
+import CadastroPage from "./pages/CadastroPage";
+import HomePage from "./pages/aluno/HomePage";
+import InstrutorProfilePage from "./pages/aluno/InstrutorProfilePage";
+import AvaliacoesPage from "./pages/aluno/AvaliacoesPage";
+import FavoritosPage from "./pages/aluno/FavoritosPage";
+import AlunoPerfilPage from "./pages/aluno/AlunoPerfilPage";
+import ComprarPacotePage from "./pages/aluno/ComprarPacotePage";
+import MinhasAulasPage from "./pages/aluno/MinhasAulasPage";
+import AvaliarInstrutorPage from "./pages/aluno/AvaliarInstrutorPage";
+import PacoteDetalhesPage from "./pages/PacoteDetalhesPage";
+import InstrutorHomePage from "./pages/instrutor/InstrutorHomePage";
+import InstrutorAvaliacoesPage from "./pages/instrutor/InstrutorAvaliacoesPage";
+import InstrutorPerfilPage from "./pages/instrutor/InstrutorPerfilPage";
+import AssinaturaPage from "./pages/instrutor/AssinaturaPage";
+import MeusAlunosPage from "./pages/instrutor/MeusAlunosPage";
 import NotFound from "./pages/NotFound";
-import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Carregando...</p>
-      </div>
-    </div>
-  );
-}
-
 function ProtectedRoute({ children, allowedType }: { children: React.ReactNode; allowedType?: 'aluno' | 'instrutor' }) {
-  const { user, userType, isLoading } = useAuth();
+  const { currentUser } = useAuth();
 
-  if (isLoading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/auth" replace />;
-  if (allowedType && userType !== allowedType) {
-    return <Navigate to={userType === 'instrutor' ? '/instructor/home' : '/home'} replace />;
+  if (!currentUser) {
+    return <Navigate to="/" replace />;
   }
+
+  if (allowedType && currentUser.tipo !== allowedType) {
+    return <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace />;
+  }
+
   return <>{children}</>;
 }
 
 function AppRoutes() {
-  const { user, userType, isLoading } = useAuth();
-  if (isLoading) return <LoadingScreen />;
+  const { currentUser } = useAuth();
 
   return (
     <Routes>
-      <Route path="/" element={user ? <Navigate to={userType === 'instrutor' ? '/instructor/home' : '/home'} replace /> : <Navigate to="/auth" replace />} />
-      <Route path="/auth" element={user ? <Navigate to={userType === 'instrutor' ? '/instructor/home' : '/home'} replace /> : <AuthPage />} />
-      
-      {/* Student Routes */}
-      <Route path="/home" element={<ProtectedRoute allowedType="aluno"><HomePage /></ProtectedRoute>} />
-      <Route path="/instructor/:id" element={<ProtectedRoute allowedType="aluno"><InstructorProfilePage /></ProtectedRoute>} />
-      <Route path="/instructor/:id/reviews" element={<ProtectedRoute allowedType="aluno"><ReviewsPage /></ProtectedRoute>} />
-      <Route path="/instructor/:id/buy" element={<ProtectedRoute allowedType="aluno"><BuyPackagePage /></ProtectedRoute>} />
-      <Route path="/favorites" element={<ProtectedRoute allowedType="aluno"><FavoritesPage /></ProtectedRoute>} />
-      <Route path="/my-lessons" element={<ProtectedRoute allowedType="aluno"><MyLessonsPage /></ProtectedRoute>} />
-      <Route path="/rate/:packageId" element={<ProtectedRoute allowedType="aluno"><RateInstructorPage /></ProtectedRoute>} />
-      <Route path="/package/:id" element={<ProtectedRoute><PackageDetailsPage /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute allowedType="aluno"><StudentProfilePage /></ProtectedRoute>} />
+      {/* Login */}
+      <Route 
+        path="/" 
+        element={
+          currentUser 
+            ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
+            : <LoginPage />
+        } 
+      />
+      <Route 
+        path="/login" 
+        element={
+          currentUser 
+            ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
+            : <LoginPage />
+        } 
+      />
+      <Route 
+        path="/cadastro" 
+        element={
+          currentUser 
+            ? <Navigate to={currentUser.tipo === 'instrutor' ? '/instrutor/home' : '/home'} replace /> 
+            : <CadastroPage />
+        } 
+      />
 
-      {/* Instructor Routes */}
-      <Route path="/instructor/home" element={<ProtectedRoute allowedType="instrutor"><InstructorHomePage /></ProtectedRoute>} />
-      <Route path="/instructor/reviews" element={<ProtectedRoute allowedType="instrutor"><InstructorReviewsPage /></ProtectedRoute>} />
-      <Route path="/instructor/profile" element={<ProtectedRoute allowedType="instrutor"><InstructorEditProfilePage /></ProtectedRoute>} />
-      <Route path="/instructor/how-it-works" element={<ProtectedRoute allowedType="instrutor"><HowItWorksPage /></ProtectedRoute>} />
-      <Route path="/instructor/students" element={<ProtectedRoute allowedType="instrutor"><MyStudentsPage /></ProtectedRoute>} />
-      <Route path="/instructor/package/:id" element={<ProtectedRoute allowedType="instrutor"><PackageDetailsPage /></ProtectedRoute>} />
+      {/* Aluno Routes */}
+      <Route path="/home" element={
+        <ProtectedRoute allowedType="aluno"><HomePage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/:id" element={
+        <ProtectedRoute allowedType="aluno"><InstrutorProfilePage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/:id/avaliacoes" element={
+        <ProtectedRoute allowedType="aluno"><AvaliacoesPage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/:id/comprar" element={
+        <ProtectedRoute allowedType="aluno"><ComprarPacotePage /></ProtectedRoute>
+      } />
+      <Route path="/favoritos" element={
+        <ProtectedRoute allowedType="aluno"><FavoritosPage /></ProtectedRoute>
+      } />
+      <Route path="/minhas-aulas" element={
+        <ProtectedRoute allowedType="aluno"><MinhasAulasPage /></ProtectedRoute>
+      } />
+      <Route path="/avaliar/:pacoteId" element={
+        <ProtectedRoute allowedType="aluno"><AvaliarInstrutorPage /></ProtectedRoute>
+      } />
+      <Route path="/pacote/:id" element={
+        <ProtectedRoute><PacoteDetalhesPage /></ProtectedRoute>
+      } />
+      <Route path="/perfil" element={
+        <ProtectedRoute allowedType="aluno"><AlunoPerfilPage /></ProtectedRoute>
+      } />
 
+      {/* Instrutor Routes */}
+      <Route path="/instrutor/home" element={
+        <ProtectedRoute allowedType="instrutor"><InstrutorHomePage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/avaliacoes" element={
+        <ProtectedRoute allowedType="instrutor"><InstrutorAvaliacoesPage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/perfil" element={
+        <ProtectedRoute allowedType="instrutor"><InstrutorPerfilPage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/assinatura" element={
+        <ProtectedRoute allowedType="instrutor"><AssinaturaPage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/alunos" element={
+        <ProtectedRoute allowedType="instrutor"><MeusAlunosPage /></ProtectedRoute>
+      } />
+      <Route path="/instrutor/pacote/:id" element={
+        <ProtectedRoute allowedType="instrutor"><PacoteDetalhesPage /></ProtectedRoute>
+      } />
+
+      {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -89,9 +134,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <PackageProvider>
+          <BusinessProvider>
             <AppRoutes />
-          </PackageProvider>
+          </BusinessProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
