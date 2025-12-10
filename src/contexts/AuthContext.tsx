@@ -22,8 +22,13 @@ interface AuthContextType {
   // Auth methods
   signUp: (email: string, password: string, tipo: UserType, nome: string, cidade: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   logout: () => Promise<void>; // Alias for signOut
+  
+  // Profile completion (for OAuth users)
+  needsProfileCompletion: boolean;
+  completeProfile: (tipo: UserType, nome: string, cidade: string) => Promise<{ error: Error | null }>;
   
   // Legacy methods
   updateInstrutor: (instrutor: Instrutor) => void;
@@ -72,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [instrutores, setInstrutores] = useState<Instrutor[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [userFavoritos, setUserFavoritos] = useState<string[]>([]);
+  const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
 
   // Fetch all instructors
   const fetchInstrutores = async () => {
@@ -146,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Fetch user profile and role-specific data
-  const fetchUserData = async (userId: string) => {
+  const fetchUserData = async (userId: string): Promise<CurrentUser | null> => {
     try {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -155,9 +161,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (profileError || !profile) {
-        console.error('Error fetching profile:', profileError);
+        // Profile doesn't exist - user needs to complete profile (OAuth flow)
+        setNeedsProfileCompletion(true);
         return null;
       }
+
+      setNeedsProfileCompletion(false);
 
       if (profile.tipo === 'instrutor') {
         const { data: instrutor } = await supabase
@@ -336,10 +345,97 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async (): Promise<{ error: Error | null }> => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        }
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
+    }
+  };
+
+  // Complete profile for OAuth users
+  const completeProfile = async (
+    tipo: UserType,
+    nome: string,
+    cidade: string
+  ): Promise<{ error: Error | null }> => {
+    if (!user) {
+      return { error: new Error('User not authenticated') };
+    }
+
+    try {
+      // Create profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: user.id,
+          nome,
+          cidade,
+          tipo,
+          foto: user.user_metadata?.avatar_url || null,
+        })
+        .select()
+        .single();
+
+      if (profileError) {
+        return { error: new Error(profileError.message) };
+      }
+
+      // Create role-specific record
+      if (tipo === 'instrutor') {
+        const { error: instrutorError } = await supabase
+          .from('instrutores')
+          .insert({
+            profile_id: profile.id,
+            categoria: 'B',
+            preco_hora: 80,
+            credenciamento_detran: '',
+          });
+
+        if (instrutorError) {
+          return { error: new Error(instrutorError.message) };
+        }
+      } else {
+        const { error: alunoError } = await supabase
+          .from('alunos')
+          .insert({
+            profile_id: profile.id,
+          });
+
+        if (alunoError) {
+          return { error: new Error(alunoError.message) };
+        }
+      }
+
+      // Refetch data
+      setNeedsProfileCompletion(false);
+      await fetchInstrutores();
+      await fetchAlunos();
+      const userData = await fetchUserData(user.id);
+      setCurrentUser(userData);
+
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
+    }
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setCurrentUser(null);
     setUserFavoritos([]);
+    setNeedsProfileCompletion(false);
   };
 
   // Legacy method alias
@@ -419,8 +515,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       alunos,
       signUp,
       signIn,
+      signInWithGoogle,
       signOut,
       logout,
+      needsProfileCompletion,
+      completeProfile,
       updateInstrutor,
       toggleFavorito,
       isFavorito,
