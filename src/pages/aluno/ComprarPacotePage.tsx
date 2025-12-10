@@ -10,12 +10,13 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Check, Clock, Star, Shield, MessageCircle, Percent } from 'lucide-react';
+import { Check, Clock, Star, Shield, MessageCircle, Percent, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function ComprarPacotePage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { instrutores } = useAuth();
+  const { instrutores, currentUser } = useAuth();
   const { criarPacote } = useBusiness();
   const [selectedPacote, setSelectedPacote] = useState<number | null>(10);
   const [loading, setLoading] = useState(false);
@@ -43,23 +44,57 @@ export default function ComprarPacotePage() {
       return;
     }
 
-    setLoading(true);
-    
-    // Simular processamento
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const pacote = criarPacote(instrutor.id, selectedPacote);
-    
-    if (pacote) {
-      toast.success('Pacote contratado com sucesso!', {
-        description: 'O instrutor foi notificado e entrará em contato.',
-      });
-      navigate('/minhas-aulas');
-    } else {
-      toast.error('Erro ao contratar pacote');
+    if (!currentUser) {
+      toast.error('Você precisa estar logado para comprar');
+      navigate('/auth');
+      return;
     }
 
-    setLoading(false);
+    setLoading(true);
+
+    try {
+      // Create local pacote first (will be updated after payment)
+      const pacote = criarPacote(instrutor.id, selectedPacote);
+      
+      if (!pacote) {
+        throw new Error('Erro ao criar pacote');
+      }
+
+      // Calculate price in cents for Stripe
+      const precoEmCentavos = Math.round(calcularPreco(selectedPacote) * 100);
+
+      // Call Stripe checkout edge function
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          pacoteId: pacote.id,
+          instrutorNome: instrutor.nome,
+          quantidadeHoras: selectedPacote,
+          precoTotal: precoEmCentavos,
+        },
+      });
+
+      if (error) {
+        console.error('Checkout error:', error);
+        throw new Error('Erro ao processar pagamento');
+      }
+
+      if (data?.url) {
+        // Open Stripe Checkout in new tab
+        window.open(data.url, '_blank');
+        toast.success('Redirecionando para pagamento...', {
+          description: 'Complete o pagamento na nova aba.',
+        });
+      } else {
+        throw new Error('URL de checkout não recebida');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erro ao processar pagamento', {
+        description: 'Tente novamente mais tarde.',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -202,10 +237,10 @@ export default function ComprarPacotePage() {
             <Shield className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                Pagamento seguro
+                Pagamento seguro via Stripe
               </p>
               <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                Seu pagamento é processado de forma segura. O valor só é liberado para 
+                Seu pagamento é processado de forma segura pelo Stripe. O valor só é liberado para 
                 o instrutor após a conclusão das aulas.
               </p>
             </div>
@@ -218,7 +253,14 @@ export default function ComprarPacotePage() {
           onClick={handleComprar}
           disabled={!selectedPacote || loading}
         >
-          {loading ? 'Processando...' : `Contratar por R$ ${selectedPacote ? calcularPreco(selectedPacote).toFixed(2) : '0,00'}`}
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Processando...
+            </>
+          ) : (
+            `Pagar R$ ${selectedPacote ? calcularPreco(selectedPacote).toFixed(2) : '0,00'}`
+          )}
         </Button>
       </main>
 
