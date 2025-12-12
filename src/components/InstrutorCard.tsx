@@ -2,6 +2,7 @@ import { Heart, Star, MapPin, Car, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Instrutor } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { SeloVerificado } from '@/components/SeloVerificado';
 import { cn } from '@/lib/utils';
 
 interface InstrutorCardProps {
@@ -46,9 +47,16 @@ export function InstrutorCard({ instrutor, className }: InstrutorCardProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-foreground truncate">
-                {instrutor.nome}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-foreground truncate">
+                  {instrutor.nome}
+                </h3>
+                <SeloVerificado
+                  verificado={instrutor.verificado || false}
+                  antecedentesDeclarados={instrutor.antecedentesDeclarados}
+                  size="sm"
+                />
+              </div>
               <div className="flex items-center gap-1 mt-0.5">
                 <Star className="w-4 h-4 fill-warning text-warning" />
                 <span className="text-sm font-medium text-foreground">

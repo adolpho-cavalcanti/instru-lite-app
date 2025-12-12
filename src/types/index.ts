@@ -23,6 +23,11 @@ export interface Instrutor {
   avaliacaoMedia: number;
   avaliacoes: Avaliacao[];
   rankingPosicao?: number;
+  // Campos de verificação
+  verificado?: boolean;
+  verificadoEm?: string;
+  antecedentesDeclarados?: boolean;
+  antecedentesDeclaradosEm?: string;
 }
 
 export interface Aluno {

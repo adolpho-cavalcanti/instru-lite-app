@@ -9,8 +9,10 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Check, Clock, Star, Shield, MessageCircle, Percent, Loader2 } from 'lucide-react';
+import { Check, Clock, Star, MessageCircle, Percent, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { SeloVerificado } from '@/components/SeloVerificado';
+import { GarantiaInfo } from '@/components/GarantiaInfo';
 
 export default function ComprarPacotePage() {
   const { id } = useParams();
@@ -127,7 +129,14 @@ export default function ComprarPacotePage() {
               <AvatarFallback>{instrutor.nome.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h2 className="font-semibold text-foreground">{instrutor.nome}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-foreground">{instrutor.nome}</h2>
+                <SeloVerificado
+                  verificado={instrutor.verificado || false}
+                  antecedentesDeclarados={instrutor.antecedentesDeclarados}
+                  size="sm"
+                />
+              </div>
               <div className="flex items-center gap-2 mt-1">
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                 <span className="text-sm font-medium">{instrutor.avaliacaoMedia}</span>
@@ -139,10 +148,6 @@ export default function ComprarPacotePage() {
                 R$ {instrutor.precoHora}/hora
               </p>
             </div>
-            <Badge variant="secondary" className="bg-primary/10 text-primary">
-              <Shield className="w-3 h-3 mr-1" />
-              Verificado
-            </Badge>
           </div>
         </Card>
 
@@ -240,28 +245,15 @@ export default function ComprarPacotePage() {
           </ul>
         </Card>
 
+        {/* Garantia de satisfação */}
+        <GarantiaInfo variant="compact" />
+
         {/* Info taxa */}
         <div className="bg-muted/50 rounded-lg p-3 flex items-center gap-2">
           <Percent className="w-4 h-4 text-muted-foreground flex-shrink-0" />
           <p className="text-xs text-muted-foreground">
             Taxa de {TAXA_PLATAFORMA}% da plataforma já inclusa no valor
           </p>
-        </div>
-
-        {/* Aviso de segurança */}
-        <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <Shield className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                Pagamento seguro via Stripe
-              </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                Seu pagamento é processado de forma segura pelo Stripe. O valor só é liberado para 
-                o instrutor após a conclusão das aulas.
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Botão de compra */}
