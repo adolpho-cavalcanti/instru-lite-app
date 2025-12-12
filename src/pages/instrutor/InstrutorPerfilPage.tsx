@@ -10,6 +10,8 @@ import { Instrutor } from '@/types';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+import { AntecedentesDeclaracao } from '@/components/AntecedentesDeclaracao';
+import { SeloVerificado } from '@/components/SeloVerificado';
 
 const CATEGORIAS_HABILITACAO = ['A', 'B', 'AB', 'C', 'D', 'E'] as const;
 type CategoriaHabilitacao = typeof CATEGORIAS_HABILITACAO[number];
@@ -110,6 +112,12 @@ export default function InstrutorPerfilPage() {
             src={instrutor.foto}
             alt={instrutor.nome}
             className="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-4 border-accent"
+          />
+          <h2 className="font-semibold text-lg">{instrutor.nome}</h2>
+          <SeloVerificado
+            verificado={instrutor.verificado || false}
+            antecedentesDeclarados={instrutor.antecedentesDeclarados}
+            className="mt-2"
           />
           <h2 className="text-xl font-bold text-foreground">{instrutor.nome}</h2>
           <p className="text-sm text-muted-foreground">{instrutor.cidade}</p>
@@ -341,6 +349,14 @@ export default function InstrutorPerfilPage() {
               Editar informações
             </Button>
           )}
+        </div>
+
+        {/* Autodeclaração de Antecedentes */}
+        <div className="mt-6">
+          <AntecedentesDeclaracao
+            antecedentesDeclarados={instrutor.antecedentesDeclarados || false}
+            onUpdate={() => window.location.reload()}
+          />
         </div>
       </main>
 

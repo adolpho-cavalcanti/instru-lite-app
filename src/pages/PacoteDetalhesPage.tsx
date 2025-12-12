@@ -12,8 +12,9 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { AulaCard } from '@/components/AulaCard';
 import { ProporAulaModal } from '@/components/ProporAulaModal';
+import { ChatPacote } from '@/components/ChatPacote';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, CheckCircle, Star, Plus, Clock, Loader2 } from 'lucide-react';
+import { Calendar, CheckCircle, Star, Plus, Clock, Loader2, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -33,6 +34,7 @@ export default function PacoteDetalhesPage() {
   const { aulas, loading: aulasLoading, proporAula, confirmarAula, marcarRealizada, cancelarAula } = useAulas(id, refetchPacote);
 
   const [showProporModal, setShowProporModal] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   if (pacoteLoading) {
     return (
@@ -202,6 +204,23 @@ export default function PacoteDetalhesPage() {
                 />
               ))}
             </div>
+          </Card>
+        )}
+
+        {/* Chat com participante */}
+        {['confirmado', 'em_andamento', 'concluido'].includes(pacote.status) && (
+          <Card className="p-4">
+            <Button
+              variant="outline"
+              className="w-full mb-3"
+              onClick={() => setShowChat(!showChat)}
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              {showChat ? 'Ocultar Chat' : 'Abrir Chat'}
+            </Button>
+            {showChat && (
+              <ChatPacote pacoteId={pacote.id} nomeOutraParte={outroUsuario?.nome} />
+            )}
           </Card>
         )}
 

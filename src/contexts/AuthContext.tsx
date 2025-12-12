@@ -67,6 +67,11 @@ function toInstrutor(dbInstrutor: DbInstrutor, profile: Profile, avaliacoes: any
     avaliacaoMedia: Number(dbInstrutor.avaliacao_media) || 5.0,
     avaliacoes,
     rankingPosicao: dbInstrutor.ranking_posicao || undefined,
+    // Campos de verificação
+    verificado: (dbInstrutor as any).verificado || false,
+    verificadoEm: (dbInstrutor as any).verificado_em || undefined,
+    antecedentesDeclarados: (dbInstrutor as any).antecedentes_declarados || false,
+    antecedentesDeclaradosEm: (dbInstrutor as any).antecedentes_declarados_em || undefined,
   };
 }
 

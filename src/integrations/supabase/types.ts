@@ -184,6 +184,8 @@ export type Database = {
       instrutores: {
         Row: {
           anos_experiencia: number
+          antecedentes_declarados: boolean
+          antecedentes_declarados_em: string | null
           avaliacao_media: number | null
           bairros_atendimento: string[] | null
           bio: string | null
@@ -198,9 +200,13 @@ export type Database = {
           stripe_customer_id: string | null
           tem_veiculo: boolean
           updated_at: string
+          verificado: boolean
+          verificado_em: string | null
         }
         Insert: {
           anos_experiencia?: number
+          antecedentes_declarados?: boolean
+          antecedentes_declarados_em?: string | null
           avaliacao_media?: number | null
           bairros_atendimento?: string[] | null
           bio?: string | null
@@ -215,9 +221,13 @@ export type Database = {
           stripe_customer_id?: string | null
           tem_veiculo?: boolean
           updated_at?: string
+          verificado?: boolean
+          verificado_em?: string | null
         }
         Update: {
           anos_experiencia?: number
+          antecedentes_declarados?: boolean
+          antecedentes_declarados_em?: string | null
           avaliacao_media?: number | null
           bairros_atendimento?: string[] | null
           bio?: string | null
@@ -232,6 +242,8 @@ export type Database = {
           stripe_customer_id?: string | null
           tem_veiculo?: boolean
           updated_at?: string
+          verificado?: boolean
+          verificado_em?: string | null
         }
         Relationships: [
           {
@@ -239,6 +251,44 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mensagens: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          lida: boolean
+          pacote_id: string
+          remetente_id: string
+          remetente_tipo: string
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          id?: string
+          lida?: boolean
+          pacote_id: string
+          remetente_id: string
+          remetente_tipo: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          lida?: boolean
+          pacote_id?: string
+          remetente_id?: string
+          remetente_tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_pacote_id_fkey"
+            columns: ["pacote_id"]
+            isOneToOne: false
+            referencedRelation: "pacotes"
             referencedColumns: ["id"]
           },
         ]
@@ -350,6 +400,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      solicitacoes_reembolso: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          id: string
+          motivo: string
+          pacote_id: string
+          resolved_at: string | null
+          status: string
+          stripe_refund_id: string | null
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          id?: string
+          motivo: string
+          pacote_id: string
+          resolved_at?: string | null
+          status?: string
+          stripe_refund_id?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          id?: string
+          motivo?: string
+          pacote_id?: string
+          resolved_at?: string | null
+          status?: string
+          stripe_refund_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_reembolso_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_reembolso_pacote_id_fkey"
+            columns: ["pacote_id"]
+            isOneToOne: false
+            referencedRelation: "pacotes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
