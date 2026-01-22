@@ -113,23 +113,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (publicInstrutores) {
-        const mapped = publicInstrutores.map((inst: any) => ({
-          id: inst.id,
-          nome: inst.profiles?.nome || 'Instrutor',
-          foto: inst.profiles?.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-          cidade: inst.profiles?.cidade || '',
-          credenciamentoDetran: '', // Not exposed in public view
-          categorias: inst.categoria ? [inst.categoria] : [],
-          anosExperiencia: inst.anos_experiencia || 0,
-          precoHora: Number(inst.preco_hora) || 0,
-          bairrosAtendimento: inst.bairros_atendimento || [],
-          temVeiculo: inst.tem_veiculo || false,
-          bio: inst.bio || '',
-          avaliacaoMedia: Number(inst.avaliacao_media) || 5.0,
-          avaliacoes: [],
-          rankingPosicao: inst.ranking_posicao || undefined,
-          verificado: false, // Not exposed in public view
-        } as Instrutor));
+        // Fetch all reviews (avaliacoes are public per RLS)
+        const { data: allAvaliacoes } = await supabase
+          .from('avaliacoes')
+          .select('*');
+
+        const mapped = publicInstrutores.map((inst: any) => {
+          // Filter reviews for this instructor
+          const instrutorAvaliacoes = (allAvaliacoes || [])
+            .filter((av: any) => av.instrutor_id === inst.id)
+            .map((av: any) => ({
+              id: av.id,
+              autor: 'Aluno',
+              alunoId: av.aluno_id,
+              nota: av.nota,
+              comentario: av.comentario || '',
+              data: av.created_at,
+              pacoteId: av.pacote_id,
+            }));
+
+          return {
+            id: inst.id,
+            nome: inst.profiles?.nome || 'Instrutor',
+            foto: inst.profiles?.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+            cidade: inst.profiles?.cidade || '',
+            credenciamentoDetran: '',
+            categorias: inst.categoria ? [inst.categoria] : [],
+            anosExperiencia: inst.anos_experiencia || 0,
+            precoHora: Number(inst.preco_hora) || 0,
+            bairrosAtendimento: inst.bairros_atendimento || [],
+            temVeiculo: inst.tem_veiculo || false,
+            bio: inst.bio || '',
+            avaliacaoMedia: Number(inst.avaliacao_media) || 5.0,
+            avaliacoes: instrutorAvaliacoes,
+            rankingPosicao: inst.ranking_posicao || undefined,
+            verificado: false,
+          } as Instrutor;
+        });
         setInstrutores(mapped);
       }
     } catch (err) {
