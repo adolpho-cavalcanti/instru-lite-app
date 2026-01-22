@@ -536,42 +536,16 @@ export type Database = {
           bairros_atendimento: string[] | null
           bio: string | null
           categoria: Database["public"]["Enums"]["categoria_habilitacao"] | null
+          cidade: string | null
           created_at: string | null
+          foto: string | null
           id: string | null
+          nome: string | null
           preco_hora: number | null
           profile_id: string | null
           ranking_posicao: number | null
           tem_veiculo: boolean | null
-        }
-        Insert: {
-          anos_experiencia?: number | null
-          avaliacao_media?: number | null
-          bairros_atendimento?: string[] | null
-          bio?: string | null
-          categoria?:
-            | Database["public"]["Enums"]["categoria_habilitacao"]
-            | null
-          created_at?: string | null
-          id?: string | null
-          preco_hora?: number | null
-          profile_id?: string | null
-          ranking_posicao?: number | null
-          tem_veiculo?: boolean | null
-        }
-        Update: {
-          anos_experiencia?: number | null
-          avaliacao_media?: number | null
-          bairros_atendimento?: string[] | null
-          bio?: string | null
-          categoria?:
-            | Database["public"]["Enums"]["categoria_habilitacao"]
-            | null
-          created_at?: string | null
-          id?: string | null
-          preco_hora?: number | null
-          profile_id?: string | null
-          ranking_posicao?: number | null
-          tem_veiculo?: boolean | null
+          verificado: boolean | null
         }
         Relationships: [
           {
