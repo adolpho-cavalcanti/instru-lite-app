@@ -213,7 +213,7 @@ export default function AuthPage() {
           <div className="flex items-center justify-center gap-2 mb-2">
             <Car className="w-8 h-8 text-primary-foreground" />
             <h1 className="text-2xl font-bold text-primary-foreground">
-              Instrutor Mais
+Meu Instrutor
             </h1>
           </div>
           <p className="text-primary-foreground/80 text-sm">
