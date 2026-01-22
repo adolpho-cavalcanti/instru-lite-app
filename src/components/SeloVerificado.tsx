@@ -71,7 +71,7 @@ export function SeloVerificado({
         <TooltipContent>
           <p className="text-xs max-w-[200px]">
             {verificado
-              ? 'Instrutor verificado pela plataforma Instrutor Mais'
+              ? 'Instrutor verificado pela plataforma Meu Instrutor'
               : 'Instrutor declarou não possuir antecedentes criminais'}
           </p>
         </TooltipContent>
