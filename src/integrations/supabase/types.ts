@@ -130,6 +130,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "avaliacoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "avaliacoes_instrutor_id_fkey"
             columns: ["instrutor_id"]
             isOneToOne: false
@@ -177,6 +184,13 @@ export type Database = {
             columns: ["aluno_id"]
             isOneToOne: false
             referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favoritos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos_safe"
             referencedColumns: ["id"]
           },
           {
@@ -374,6 +388,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pacotes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pacotes_instrutor_id_fkey"
             columns: ["instrutor_id"]
             isOneToOne: false
@@ -462,6 +483,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "solicitacoes_reembolso_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "solicitacoes_reembolso_pacote_id_fkey"
             columns: ["pacote_id"]
             isOneToOne: false
@@ -472,6 +500,35 @@ export type Database = {
       }
     }
     Views: {
+      alunos_safe: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          profile_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          profile_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          profile_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alunos_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instrutores_public: {
         Row: {
           anos_experiencia: number | null
