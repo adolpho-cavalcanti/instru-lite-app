@@ -39,7 +39,7 @@ export default function AssinaturaPage() {
           </h2>
           
           <p className="text-muted-foreground mb-4">
-            Na Drive UP, você não paga nada para se cadastrar ou manter seu perfil ativo. 
+            No Instrutor Mais, você não paga nada para se cadastrar ou manter seu perfil ativo. 
             Cobramos apenas uma pequena comissão quando você fecha um pacote de aulas.
           </p>
 

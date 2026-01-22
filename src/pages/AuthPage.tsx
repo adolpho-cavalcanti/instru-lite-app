@@ -150,7 +150,7 @@ export default function AuthPage() {
           toast.error(error.message);
           return;
         }
-        toast.success('Perfil completo! Bem-vindo ao Drive UP');
+        toast.success('Perfil completo! Bem-vindo ao Instrutor Mais');
       } else if (mode === 'login') {
         const { error } = await signIn(email, password);
         if (error) {
@@ -213,7 +213,7 @@ export default function AuthPage() {
           <div className="flex items-center justify-center gap-2 mb-2">
             <Car className="w-8 h-8 text-primary-foreground" />
             <h1 className="text-2xl font-bold text-primary-foreground">
-              Drive UP
+              Instrutor Mais
             </h1>
           </div>
           <p className="text-primary-foreground/80 text-sm">
@@ -445,7 +445,7 @@ export default function AuthPage() {
         <div className="flex items-center justify-center gap-2 mb-2">
           <Car className="w-8 h-8 text-primary-foreground" />
           <h1 className="text-2xl font-bold text-primary-foreground">
-            Drive UP
+            Instrutor Mais
           </h1>
         </div>
         <p className="text-primary-foreground/80 text-sm">
@@ -803,7 +803,7 @@ export default function AuthPage() {
       {/* Footer */}
       <footer className="px-4 py-4 text-center">
         <p className="text-xs text-muted-foreground">
-          © 2024 Drive UP • Todos os direitos reservados
+          © 2024 Instrutor Mais • Todos os direitos reservados
         </p>
       </footer>
     </div>
