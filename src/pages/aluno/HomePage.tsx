@@ -39,7 +39,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <Header title="Drive UP" showLogout />
+      <Header title="Instrutor Mais" showLogout />
 
       <main className="px-4 py-4 max-w-md mx-auto">
         {/* Welcome */}
