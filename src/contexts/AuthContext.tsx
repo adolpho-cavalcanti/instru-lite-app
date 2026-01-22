@@ -99,13 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Fetch all instructors (use public view for marketplace)
   const fetchInstrutores = async () => {
     try {
-      // Use the public view which exposes safe fields for all authenticated users
+      // Use the public view which includes profile data directly
       const { data: publicInstrutores, error } = await supabase
         .from('instrutores_public')
-        .select(`
-          *,
-          profiles!instrutores_profile_id_fkey (*)
-        `);
+        .select('*');
 
       if (error) {
         console.error('Error fetching instrutores:', error);
@@ -134,9 +131,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           return {
             id: inst.id,
-            nome: inst.profiles?.nome || 'Instrutor',
-            foto: inst.profiles?.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-            cidade: inst.profiles?.cidade || '',
+            nome: inst.nome || 'Instrutor',
+            foto: inst.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+            cidade: inst.cidade || '',
             credenciamentoDetran: '',
             categorias: inst.categoria ? [inst.categoria] : [],
             anosExperiencia: inst.anos_experiencia || 0,
@@ -147,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             avaliacaoMedia: Number(inst.avaliacao_media) || 5.0,
             avaliacoes: instrutorAvaliacoes,
             rankingPosicao: inst.ranking_posicao || undefined,
-            verificado: false,
+            verificado: inst.verificado || false,
           } as Instrutor;
         });
         setInstrutores(mapped);
