@@ -96,11 +96,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userFavoritos, setUserFavoritos] = useState<string[]>([]);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
 
-  // Fetch all instructors
+  // Fetch all instructors (use public view for marketplace)
   const fetchInstrutores = async () => {
     try {
-      const { data: dbInstrutores, error } = await supabase
-        .from('instrutores')
+      // Use the public view which exposes safe fields for all authenticated users
+      const { data: publicInstrutores, error } = await supabase
+        .from('instrutores_public')
         .select(`
           *,
           profiles!instrutores_profile_id_fkey (*)
@@ -111,10 +112,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (dbInstrutores) {
-        const mapped = dbInstrutores.map((inst: any) => 
-          toInstrutor(inst, inst.profiles, [])
-        );
+      if (publicInstrutores) {
+        const mapped = publicInstrutores.map((inst: any) => ({
+          id: inst.id,
+          nome: inst.profiles?.nome || 'Instrutor',
+          foto: inst.profiles?.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+          cidade: inst.profiles?.cidade || '',
+          credenciamentoDetran: '', // Not exposed in public view
+          categorias: inst.categoria ? [inst.categoria] : [],
+          anosExperiencia: inst.anos_experiencia || 0,
+          precoHora: Number(inst.preco_hora) || 0,
+          bairrosAtendimento: inst.bairros_atendimento || [],
+          temVeiculo: inst.tem_veiculo || false,
+          bio: inst.bio || '',
+          avaliacaoMedia: Number(inst.avaliacao_media) || 5.0,
+          avaliacoes: [],
+          rankingPosicao: inst.ranking_posicao || undefined,
+          verificado: false, // Not exposed in public view
+        } as Instrutor));
         setInstrutores(mapped);
       }
     } catch (err) {
