@@ -137,6 +137,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "avaliacoes_instrutor_id_fkey"
+            columns: ["instrutor_id"]
+            isOneToOne: false
+            referencedRelation: "instrutores_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "avaliacoes_pacote_id_fkey"
             columns: ["pacote_id"]
             isOneToOne: false
@@ -177,6 +184,13 @@ export type Database = {
             columns: ["instrutor_id"]
             isOneToOne: false
             referencedRelation: "instrutores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favoritos_instrutor_id_fkey"
+            columns: ["instrutor_id"]
+            isOneToOne: false
+            referencedRelation: "instrutores_public"
             referencedColumns: ["id"]
           },
         ]
@@ -366,6 +380,13 @@ export type Database = {
             referencedRelation: "instrutores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pacotes_instrutor_id_fkey"
+            columns: ["instrutor_id"]
+            isOneToOne: false
+            referencedRelation: "instrutores_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -451,7 +472,60 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      instrutores_public: {
+        Row: {
+          anos_experiencia: number | null
+          avaliacao_media: number | null
+          bairros_atendimento: string[] | null
+          bio: string | null
+          categoria: Database["public"]["Enums"]["categoria_habilitacao"] | null
+          created_at: string | null
+          id: string | null
+          preco_hora: number | null
+          profile_id: string | null
+          ranking_posicao: number | null
+          tem_veiculo: boolean | null
+        }
+        Insert: {
+          anos_experiencia?: number | null
+          avaliacao_media?: number | null
+          bairros_atendimento?: string[] | null
+          bio?: string | null
+          categoria?:
+            | Database["public"]["Enums"]["categoria_habilitacao"]
+            | null
+          created_at?: string | null
+          id?: string | null
+          preco_hora?: number | null
+          profile_id?: string | null
+          ranking_posicao?: number | null
+          tem_veiculo?: boolean | null
+        }
+        Update: {
+          anos_experiencia?: number | null
+          avaliacao_media?: number | null
+          bairros_atendimento?: string[] | null
+          bio?: string | null
+          categoria?:
+            | Database["public"]["Enums"]["categoria_habilitacao"]
+            | null
+          created_at?: string | null
+          id?: string | null
+          preco_hora?: number | null
+          profile_id?: string | null
+          ranking_posicao?: number | null
+          tem_veiculo?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instrutores_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_current_aluno_id: { Args: never; Returns: string }
